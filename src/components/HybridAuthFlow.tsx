@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Mail, Key, Smartphone, CheckCircle, AlertTriangle, ArrowRight, RotateCcw } from 'lucide-react';
+import { Shield, Mail, Key, Smartphone, CheckCircle, AlertTriangle, ArrowRight, RotateCcw, Settings } from 'lucide-react';
 import { hybridAuth, type UserProfile } from '../lib/hybridAuth';
+import { emailService } from '../lib/emailService';
 
 interface HybridAuthFlowProps {
   onAuthSuccess: (profile: UserProfile) => void;
@@ -27,6 +28,7 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoveryPassphrase, setRecoveryPassphrase] = useState('');
+  const [emailConfig, setEmailConfig] = useState(emailService.getConfigStatus());
 
   useEffect(() => {
     checkExistingAuth();
@@ -177,6 +179,30 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
     }
   };
 
+  const handleTestEmail = async () => {
+    if (!email.trim()) {
+      setError('テスト送信するメールアドレスを入力してください。');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await emailService.testEmail(email);
+      if (result.success) {
+        setSuccess('テストメールを送信しました！');
+      } else {
+        setError(result.message);
+      }
+    } catch (error) {
+      setError('テストメール送信に失敗しました。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderDeviceStep = () => (
     <div className="text-center">
       <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
@@ -200,6 +226,27 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
         <p className="text-gray-600 font-jp-normal">
           確認コード送信のためのメールアドレスを入力してください
         </p>
+        
+        {/* EmailJS設定状態表示 */}
+        <div className={`mt-4 p-3 rounded-lg border ${
+          emailConfig.isConfigured 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-yellow-50 border-yellow-200'
+        }`}>
+          <div className="flex items-center space-x-2">
+            <Settings className={`w-4 h-4 ${
+              emailConfig.isConfigured ? 'text-green-600' : 'text-yellow-600'
+            }`} />
+            <span className={`text-sm font-jp-medium ${
+              emailConfig.isConfigured ? 'text-green-800' : 'text-yellow-800'
+            }`}>
+              {emailConfig.isConfigured 
+                ? 'EmailJS設定済み - 実際のメールが送信されます' 
+                : 'EmailJS未設定 - デモモードで動作します'
+              }
+            </span>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleEmailSubmit} className="space-y-4">
@@ -231,6 +278,16 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
               <ArrowRight className="w-4 h-4" />
             </>
           )}
+        </button>
+        
+        {/* テスト送信ボタン */}
+        <button
+          type="button"
+          onClick={handleTestEmail}
+          disabled={loading || !email.trim()}
+          className="w-full bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg font-jp-medium transition-colors text-sm"
+        >
+          テスト送信
         </button>
       </form>
     </div>
