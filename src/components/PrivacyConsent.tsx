@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Eye, Lock, Database, AlertTriangle, Users, Clock, MessageCircle } from 'lucide-react';
+import { consentService } from '../lib/supabase';
 
 interface PrivacyConsentProps {
   onConsent: (accepted: boolean) => void;
@@ -7,11 +8,67 @@ interface PrivacyConsentProps {
 
 const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
   const [isChecked, setIsChecked] = useState(false);
+      // 同意履歴を記録
+      const consentRecord = {
+        id: Date.now().toString(),
+        line_username: '', // ユーザー名入力時に更新される
+        consent_given: true,
+        consent_date: new Date().toISOString(),
+        ip_address: 'unknown', // 実際の実装では取得可能
+        user_agent: navigator.userAgent
+      };
+      
+      // ローカルストレージに保存
+      const existingHistories = localStorage.getItem('consent_histories');
+      const histories = existingHistories ? JSON.parse(existingHistories) : [];
+      histories.push(consentRecord);
+      localStorage.setItem('consent_histories', JSON.stringify(histories));
+      
+      // Supabaseにも保存（バックグラウンドで）
+      if (consentRecord.line_username) {
+        consentService.createConsentRecord({
+          line_username: consentRecord.line_username,
+          consent_given: consentRecord.consent_given,
+          consent_date: consentRecord.consent_date,
+          ip_address: consentRecord.ip_address,
+          user_agent: consentRecord.user_agent
+        }).catch(error => {
+          console.error('Supabase同意履歴保存エラー:', error);
+        });
+      }
+      
   const [showDetails, setShowDetails] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isChecked) {
+      // 拒否履歴を記録
+      const consentRecord = {
+        id: Date.now().toString(),
+        line_username: 'declined_user_' + Date.now(),
+        consent_given: false,
+        consent_date: new Date().toISOString(),
+        ip_address: 'unknown',
+        user_agent: navigator.userAgent
+      };
+      
+      // ローカルストレージに保存
+      const existingHistories = localStorage.getItem('consent_histories');
+      const histories = existingHistories ? JSON.parse(existingHistories) : [];
+      histories.push(consentRecord);
+      localStorage.setItem('consent_histories', JSON.stringify(histories));
+      
+      // Supabaseにも保存（バックグラウンドで）
+      consentService.createConsentRecord({
+        line_username: consentRecord.line_username,
+        consent_given: consentRecord.consent_given,
+        consent_date: consentRecord.consent_date,
+        ip_address: consentRecord.ip_address,
+        user_agent: consentRecord.user_agent
+      }).catch(error => {
+        console.error('Supabase同意履歴保存エラー:', error);
+      });
+      
       onConsent(true);
     }
   };

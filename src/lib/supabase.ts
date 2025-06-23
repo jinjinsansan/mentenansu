@@ -56,6 +56,16 @@ export interface Counselor {
   created_at: string;
 }
 
+export interface ConsentHistory {
+  id: string;
+  line_username: string;
+  consent_given: boolean;
+  consent_date: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: string;
+}
+
 // ユーザー管理関数
 export const userService = {
   async createUser(lineUsername: string): Promise<User | null> {
@@ -314,6 +324,62 @@ export const counselorService = {
   }
 };
 
+// 同意履歴管理関数
+export const consentService = {
+  async createConsentRecord(record: Omit<ConsentHistory, 'id' | 'created_at'>): Promise<ConsentHistory | null> {
+    if (!supabase) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('consent_histories')
+        .insert([record])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('同意履歴作成エラー:', error);
+      return null;
+    }
+  },
+
+  async getAllConsentHistories(): Promise<ConsentHistory[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('consent_histories')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('同意履歴取得エラー:', error);
+      return [];
+    }
+  },
+
+  async getConsentHistoryByUsername(lineUsername: string): Promise<ConsentHistory | null> {
+    if (!supabase) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('consent_histories')
+        .select('*')
+        .eq('line_username', lineUsername)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('ユーザー同意履歴取得エラー:', error);
+      return null;
+    }
+  }
+};
+
 // データ同期ユーティリティ
 export const syncService = {
   // ローカルストレージからSupabaseへデータを移行
@@ -371,6 +437,66 @@ export const syncService = {
       return true;
     } catch (error) {
       console.error('同期エラー:', error);
+      return false;
+    }
+  },
+
+  // 同意履歴をSupabaseに同期
+  async syncConsentHistories(): Promise<boolean> {
+    if (!supabase) return false;
+    
+    try {
+      // ローカルストレージから同意履歴を取得
+      const localHistories = localStorage.getItem('consent_histories');
+      if (!localHistories) return true;
+      
+      const histories = JSON.parse(localHistories);
+      
+      // Supabaseに保存
+      for (const history of histories) {
+        // 既存の記録をチェック
+        const existing = await consentService.getConsentHistoryByUsername(history.line_username);
+        if (!existing) {
+          await consentService.createConsentRecord({
+            line_username: history.line_username,
+            consent_given: history.consent_given,
+            consent_date: history.consent_date,
+            ip_address: history.ip_address,
+            user_agent: history.user_agent
+          });
+        }
+      }
+      
+      console.log('同意履歴の同期が完了しました');
+      return true;
+    } catch (error) {
+      console.error('同意履歴同期エラー:', error);
+      return false;
+    }
+  },
+
+  // Supabaseから同意履歴をローカルに同期
+  async syncConsentHistoriesToLocal(): Promise<boolean> {
+    if (!supabase) return false;
+    
+    try {
+      const histories = await consentService.getAllConsentHistories();
+      
+      // ローカルストレージ形式に変換
+      const localFormat = histories.map(history => ({
+        id: history.id,
+        line_username: history.line_username,
+        consent_given: history.consent_given,
+        consent_date: history.consent_date,
+        ip_address: history.ip_address,
+        user_agent: history.user_agent
+      }));
+      
+      localStorage.setItem('consent_histories', JSON.stringify(localFormat));
+      console.log('同意履歴のローカル同期が完了しました');
+      return true;
+    } catch (error) {
+      console.error('同意履歴ローカル同期エラー:', error);
       return false;
     }
   }
