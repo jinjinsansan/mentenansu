@@ -154,6 +154,30 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
     }
   };
 
+  const handleTestEmail = async () => {
+    if (!email.trim()) {
+      setError('テスト送信するメールアドレスを入力してください。');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await emailService.testEmail(email);
+      if (result.success) {
+        setSuccess('テストメールを送信しました！');
+      } else {
+        setError(result.message);
+      }
+    } catch (error) {
+      setError('テストメール送信に失敗しました。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRecoverySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recoveryEmail.trim() || !recoveryPassphrase.trim()) return;
@@ -174,30 +198,6 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
       }
     } catch (error) {
       setError('アカウント復旧中にエラーが発生しました。');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTestEmail = async () => {
-    if (!email.trim()) {
-      setError('テスト送信するメールアドレスを入力してください。');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const result = await emailService.testEmail(email);
-      if (result.success) {
-        setSuccess('テストメールを送信しました！');
-      } else {
-        setError(result.message);
-      }
-    } catch (error) {
-      setError('テストメール送信に失敗しました。');
     } finally {
       setLoading(false);
     }

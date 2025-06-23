@@ -25,6 +25,12 @@
 - **同意履歴管理**: プライバシーポリシー同意の完全追跡
 - **メンテナンスモード**: システム保守時の適切な案内
 
+### 新機能（2025年1月21日実装）
+- **EmailJS統合**: 確認コードのメール送信機能
+- **自動同期機能**: ローカルデータの自動Supabase同期
+- **同意履歴管理**: プライバシーポリシー同意の完全追跡
+- **メンテナンスモード**: システム保守時の適切な案内
+
 ## 🚀 技術スタック
 
 - **フロントエンド**: React + TypeScript
@@ -68,6 +74,11 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_EMAILJS_SERVICE_ID=your_emailjs_service_id
 VITE_EMAILJS_TEMPLATE_ID=your_emailjs_template_id
 VITE_EMAILJS_PUBLIC_KEY=your_emailjs_public_key
+
+# EmailJS設定
+VITE_EMAILJS_SERVICE_ID=your_emailjs_service_id
+VITE_EMAILJS_TEMPLATE_ID=your_emailjs_template_id
+VITE_EMAILJS_PUBLIC_KEY=your_emailjs_public_key
 ```
 
 ## 🗄️ データベース設定
@@ -86,6 +97,49 @@ VITE_EMAILJS_PUBLIC_KEY=your_emailjs_public_key
 - **chat_rooms**: チャットルーム
 - **messages**: メッセージ
 - **consent_histories**: 同意履歴
+- **consent_histories**: 同意履歴
+
+## 📧 EmailJS設定手順
+
+### 1. EmailJSアカウント作成
+1. [EmailJS](https://www.emailjs.com/)にアクセスし、無料アカウントを作成
+2. ダッシュボードにログイン
+
+### 2. メールサービス設定
+1. 「Email Services」タブを選択
+2. 「Add New Service」をクリック
+3. Gmail、Outlook、カスタムSMTPなどからサービスを選択
+4. 指示に従って認証情報を入力
+5. 作成されたService IDをメモ
+
+### 3. メールテンプレート作成
+1. 「Email Templates」タブを選択
+2. 「Create New Template」をクリック
+3. テンプレート名を入力（例：「Verification Code」）
+4. 以下のパラメータを使用してテンプレートを作成:
+   - `{{to_email}}`: 送信先メールアドレス
+   - `{{verification_code}}`: 確認コード
+   - `{{app_name}}`: アプリ名
+   - `{{user_name}}`: ユーザー名
+5. 作成されたTemplate IDをメモ
+
+### 4. 環境変数設定
+`.env`ファイルに以下の環境変数を追加:
+```
+VITE_EMAILJS_SERVICE_ID=your_service_id
+VITE_EMAILJS_TEMPLATE_ID=your_template_id
+VITE_EMAILJS_PUBLIC_KEY=your_public_key
+```
+
+### 5. 動作確認
+1. アプリを起動
+2. ハイブリッド認証設定画面でテスト送信を実行
+3. 指定したメールアドレスに確認コードが届くことを確認
+
+### 注意事項
+- 無料プランでは月300通までメール送信可能
+- テンプレートには必ず`{{verification_code}}`パラメータを含めること
+- 本番環境では環境変数を適切に設定すること
 
 ## 📧 EmailJS設定手順
 
@@ -193,6 +247,18 @@ VITE_EMAILJS_PUBLIC_KEY=your_public_key
 - CSV出力機能
 - 管理画面での一覧・検索機能
 
+### 自動同期機能（新機能）
+- アプリ起動時の自動ユーザー作成・確認
+- 5分間隔でのローカルデータ自動同期
+- 手動同期オプション
+- エラーハンドリングと状態表示
+
+### 同意履歴管理（新機能）
+- プライバシーポリシー同意の完全追跡
+- 法的要件に対応した履歴保存
+- CSV出力機能
+- 管理画面での一覧・検索機能
+
 ## 🔒 セキュリティ
 
 - Row Level Security (RLS) による適切なデータアクセス制御
@@ -257,6 +323,7 @@ src/
 │   ├── AdminPanel.tsx   # 管理画面
 │   ├── AutoSyncSettings.tsx # 自動同期設定
 │   ├── ConsentHistoryManagement.tsx # 同意履歴管理
+│   ├── ConsentHistoryManagement.tsx # 同意履歴管理
 │   └── ...
 ├── pages/               # ページコンポーネント
 │   ├── DiaryPage.tsx    # 日記作成
@@ -266,6 +333,8 @@ src/
 │   └── supabase.ts      # Supabase設定
 ├── hooks/               # カスタムフック
 │   ├── useSupabase.ts   # Supabase連携
+│   ├── useAutoSync.ts   # 自動同期
+│   └── useMaintenanceStatus.ts # メンテナンス状態
 │   ├── useAutoSync.ts   # 自動同期
 │   └── useMaintenanceStatus.ts # メンテナンス状態
 └── ...
