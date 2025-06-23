@@ -149,7 +149,7 @@ export const getLineUserProfile = async (accessToken: string): Promise<LineUser>
 };
 
 // 認証情報を安全に保存
-export const saveAuthData = (tokenData: LineTokenResponse, userProfile: LineUser): void => {
+export const saveAuthData = async (tokenData: LineTokenResponse, userProfile: LineUser): Promise<void> => {
   try {
     // セキュリティのため、必要最小限の情報のみ保存
     const authData = {
@@ -167,6 +167,17 @@ export const saveAuthData = (tokenData: LineTokenResponse, userProfile: LineUser
     
     // ユーザー名も別途保存（既存システムとの互換性のため）
     localStorage.setItem('line-username', userProfile.displayName);
+    
+    // 同意履歴にユーザー名を追加（既存の同意履歴がある場合）
+    const existingHistories = localStorage.getItem('consent_histories');
+    if (existingHistories) {
+      const histories = JSON.parse(existingHistories);
+      const updatedHistories = histories.map((history: any) => ({
+        ...history,
+        line_username: history.line_username || userProfile.displayName
+      }));
+      localStorage.setItem('consent_histories', JSON.stringify(updatedHistories));
+    }
     
     console.log('認証情報を保存しました');
   } catch (error) {
