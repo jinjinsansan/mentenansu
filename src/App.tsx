@@ -14,6 +14,12 @@ import EmotionTypes from './pages/EmotionTypes';
 import Support from './pages/Support';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
+import { isGoogleAuthAvailable } from './lib/googleAuth';
+import GoogleAuthGuard from './components/GoogleAuthGuard';
+import GoogleAuthCallback from './pages/GoogleAuthCallback';
+
+// URLパスをチェックしてコールバックページかどうか判定
+const isGoogleAuthCallback = window.location.pathname === '/auth/google/callback';
 
 interface JournalEntry {
   id: string;
@@ -50,6 +56,7 @@ const App: React.FC = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const { isMaintenanceMode, config: maintenanceConfig, loading: maintenanceLoading } = useMaintenanceStatus();
   const { isConnected, currentUser, initializeUser } = useSupabase();
+  const [shouldUseGoogleAuth, setShouldUseGoogleAuth] = useState(false);
 
   const [formData, setFormData] = useState({
     emotion: '',
@@ -66,6 +73,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadEntries();
+    
+    // Google認証が利用可能かチェック
+    setShouldUseGoogleAuth(isGoogleAuthAvailable());
   }, []);
 
   useEffect(() => {
@@ -984,7 +994,13 @@ const App: React.FC = () => {
     return <MaintenanceMode config={maintenanceConfig} />;
   }
 
-  return (
+  // Google認証コールバックページの場合は特別処理
+  if (isGoogleAuthCallback) {
+    return <GoogleAuthCallback />;
+  }
+
+  // Google認証が有効な場合はGuardで包む
+  const AppContent = () => (
     <div className="min-h-screen bg-gray-50">
       {!showPrivacyConsent && currentPage !== 'home' && (
         <>
@@ -1200,6 +1216,14 @@ const App: React.FC = () => {
       {/* カウンセラーログインモーダル */}
       {renderCounselorLoginModal()}
     </div>
+  );
+
+  return shouldUseGoogleAuth ? (
+    <GoogleAuthGuard>
+      <AppContent />
+    </GoogleAuthGuard>
+  ) : (
+    <AppContent />
   );
 };
 

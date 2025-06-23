@@ -23,13 +23,14 @@
 - **自動同期機能**: ローカルデータの自動Supabase同期
 - **同意履歴管理**: プライバシーポリシー同意の完全追跡
 - **メンテナンスモード**: システム保守時の適切な案内
+- **Google認証対応**: セキュアなOAuth2.0認証システム
 
 ## 🚀 技術スタック
 
 - **フロントエンド**: React + TypeScript
 - **スタイリング**: Tailwind CSS
 - **データベース**: Supabase (PostgreSQL)
-- **認証**: カスタム認証システム
+- **認証**: Google OAuth2.0 + カスタム認証システム
 - **デプロイ**: Netlify
 - **開発環境**: Vite
 
@@ -62,6 +63,10 @@ npm run dev
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Google認証設定
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+VITE_GOOGLE_REDIRECT_URI=your_redirect_uri
 ```
 
 ## 🗄️ データベース設定
@@ -145,6 +150,12 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 - CSV出力機能
 - 管理画面での一覧・検索機能
 
+### Google認証システム（新機能）
+- セキュアなOAuth2.0認証フロー
+- PKCE対応によるセキュリティ強化
+- CSRF・リプレイ攻撃対策
+- 既存システムとの互換性維持
+
 ## 🔒 セキュリティ
 
 - Row Level Security (RLS) による適切なデータアクセス制御
@@ -220,6 +231,9 @@ src/
 │   ├── useSupabase.ts   # Supabase連携
 │   ├── useAutoSync.ts   # 自動同期
 │   └── useMaintenanceStatus.ts # メンテナンス状態
+├── lib/                 # ライブラリ
+│   ├── supabase.ts      # Supabase設定
+│   └── googleAuth.ts    # Google認証
 └── ...
 ```
 
