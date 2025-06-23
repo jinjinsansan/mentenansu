@@ -1038,7 +1038,7 @@ const App: React.FC = () => {
                 </div>
 
                 {/* デスクトップナビゲーション */}
-                <nav className="hidden md:flex space-x-8">
+                <nav className="hidden space-x-8">
                   {[
                     { key: 'how-to', label: '使い方', icon: BookOpen },
                     { key: 'diary', label: '日記', icon: Plus },
@@ -1090,7 +1090,7 @@ const App: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   {/* モバイル用ユーザー名表示 */}
                   {lineUsername && (
-                    <div className="sm:hidden flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-full border border-blue-200">
+                    <div className="md:hidden flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-full border border-blue-200">
                       <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                       <span className="text-blue-700 font-jp-medium text-xs">
                         {lineUsername}さん
@@ -1100,7 +1100,7 @@ const App: React.FC = () => {
                   
                   <button
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   >
                     {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                   </button>
@@ -1110,7 +1110,7 @@ const App: React.FC = () => {
 
             {/* モバイルメニュー */}
             {isMobileMenuOpen && (
-              <div className="md:hidden border-t border-gray-200 bg-white">
+              <div className="border-t border-gray-200 bg-white">
                 <div className="px-2 pt-2 pb-3 space-y-1">
                   {[
                     { key: 'home', label: 'TOP', icon: Home },
