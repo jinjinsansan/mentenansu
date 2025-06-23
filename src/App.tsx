@@ -15,9 +15,6 @@ import Support from './pages/Support';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
 
-// URLパスをチェックしてコールバックページかどうか判定
-// const isGoogleAuthCallback = window.location.pathname === '/auth/google/callback';
-
 interface JournalEntry {
   id: string;
   date: string;

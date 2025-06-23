@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import LineAuthGuard from '../components/LineAuthGuard';
+import { checkAuthStatus } from '../lib/lineAuth';
 
 const DiaryPage: React.FC = () => {
+  const [showLineAuth, setShowLineAuth] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     event: '',
