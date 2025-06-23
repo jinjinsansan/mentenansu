@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users, Info, Settings } from 'lucide-react';
+import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users, Info, Settings, BarChart3, TrendingUp } from 'lucide-react';
 import { useSupabase } from '../hooks/useSupabase';
-import { syncService, userService, consentService, supabase } from '../lib/supabase';
+import { syncService, userService, consentService, diaryService, supabase } from '../lib/supabase';
 import AutoSyncSettings from './AutoSyncSettings';
 
 const DataMigration: React.FC = () => {
@@ -15,10 +15,36 @@ const DataMigration: React.FC = () => {
   const [supabaseConsentCount, setSupabaseConsentCount] = useState(0);
   const [userExists, setUserExists] = useState(false);
   const [activeTab, setActiveTab] = useState<'manual' | 'auto'>('auto');
+  const [stats, setStats] = useState<{
+    userStats: { total: number; today: number; thisWeek: number } | null;
+    diaryStats: { total: number; today: number; thisWeek: number; byEmotion: Record<string, number> } | null;
+  }>({
+    userStats: null,
+    diaryStats: null
+  });
+  const [migrationProgress, setMigrationProgress] = useState(0);
 
   React.useEffect(() => {
     checkDataCounts();
+    if (isConnected) {
+      loadStats();
+    }
   }, [isConnected, currentUser]);
+
+  const loadStats = async () => {
+    if (!isConnected) return;
+    
+    try {
+      const [userStats, diaryStats] = await Promise.all([
+        userService.getUserStats(),
+        diaryService.getDiaryStats()
+      ]);
+      
+      setStats({ userStats, diaryStats });
+    } catch (error) {
+      console.error('統計データ読み込みエラー:', error);
+    }
+  };
 
   const checkDataCounts = () => {
     // ローカルデータ数をチェック
@@ -80,13 +106,19 @@ const DataMigration: React.FC = () => {
 
     setMigrating(true);
     setMigrationStatus('ローカルデータをSupabaseに移行中...');
+    setMigrationProgress(0);
 
     try {
-      const success = await syncService.migrateLocalData(currentUser.id);
+      // 大量データ対応の移行処理
+      const success = await syncService.bulkMigrateLocalData(
+        currentUser.id,
+        (progress) => setMigrationProgress(progress)
+      );
       
       if (success) {
         setMigrationStatus('移行が完了しました！');
         checkDataCounts();
+        loadStats();
       } else {
         setMigrationStatus('移行に失敗しました。');
       }
@@ -95,6 +127,7 @@ const DataMigration: React.FC = () => {
       setMigrationStatus('移行中にエラーが発生しました。');
     } finally {
       setMigrating(false);
+      setMigrationProgress(0);
     }
   };
 
@@ -139,6 +172,7 @@ const DataMigration: React.FC = () => {
       if (success) {
         setMigrationStatus('同期が完了しました！');
         checkDataCounts();
+        loadStats();
       } else {
         setMigrationStatus('同期に失敗しました。');
       }
@@ -256,6 +290,75 @@ const DataMigration: React.FC = () => {
           <AutoSyncSettings />
         ) : (
           <div className="space-y-6">
+        {/* 本番環境統計（Supabase接続時のみ表示） */}
+        {isConnected && (stats.userStats || stats.diaryStats) && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+            <div className="flex items-center space-x-3 mb-4">
+              <BarChart3 className="w-6 h-6 text-blue-600" />
+              <h3 className="text-lg font-jp-bold text-gray-900">本番環境統計</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              {stats.userStats && (
+                <>
+                  <div className="bg-white rounded-lg p-4 border border-blue-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Users className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-jp-medium text-gray-700">総ユーザー数</span>
+                    </div>
+                    <p className="text-2xl font-jp-bold text-blue-600">{stats.userStats.total.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <TrendingUp className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-jp-medium text-gray-700">今日の新規</span>
+                    </div>
+                    <p className="text-2xl font-jp-bold text-green-600">{stats.userStats.today.toLocaleString()}</p>
+                  </div>
+                </>
+              )}
+              
+              {stats.diaryStats && (
+                <>
+                  <div className="bg-white rounded-lg p-4 border border-purple-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Database className="w-5 h-5 text-purple-600" />
+                      <span className="text-sm font-jp-medium text-gray-700">総日記数</span>
+                    </div>
+                    <p className="text-2xl font-jp-bold text-purple-600">{stats.diaryStats.total.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-orange-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <TrendingUp className="w-5 h-5 text-orange-600" />
+                      <span className="text-sm font-jp-medium text-gray-700">今日の日記</span>
+                    </div>
+                    <p className="text-2xl font-jp-bold text-orange-600">{stats.diaryStats.today.toLocaleString()}</p>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {/* 人気の感情トップ3 */}
+            {stats.diaryStats && Object.keys(stats.diaryStats.byEmotion).length > 0 && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <h4 className="font-jp-bold text-gray-900 mb-3">人気の感情 TOP3</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  {Object.entries(stats.diaryStats.byEmotion)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 3)
+                    .map(([emotion, count], index) => (
+                      <div key={emotion} className="text-center">
+                        <div className="text-lg font-jp-bold text-gray-900">#{index + 1}</div>
+                        <div className="text-sm font-jp-medium text-gray-700">{emotion}</div>
+                        <div className="text-xs text-gray-500">{count.toLocaleString()}件</div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 接続状態 */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <div className="flex items-center space-x-3 mb-4">
@@ -438,10 +541,26 @@ const DataMigration: React.FC = () => {
           {/* ステータス表示 */}
           {migrationStatus && (
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center space-x-2">
+             <div className="flex items-center space-x-2 mb-2">
                 <RefreshCw className={`w-4 h-4 ${(migrating || syncing) ? 'animate-spin text-blue-600' : 'text-green-600'}`} />
                 <span className="text-sm font-jp-normal text-gray-700">{migrationStatus}</span>
               </div>
+             
+             {/* 進捗バー */}
+             {migrating && migrationProgress > 0 && (
+               <div className="mt-2">
+                 <div className="flex justify-between items-center mb-1">
+                   <span className="text-xs font-jp-medium text-gray-600">移行進捗</span>
+                   <span className="text-xs font-jp-bold text-blue-600">{migrationProgress}%</span>
+                 </div>
+                 <div className="w-full bg-gray-200 rounded-full h-2">
+                   <div 
+                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                     style={{ width: `${migrationProgress}%` }}
+                   ></div>
+                 </div>
+               </div>
+             )}
             </div>
           )}
         </div>
@@ -455,9 +574,11 @@ const DataMigration: React.FC = () => {
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>データ移行は一方向のコピーです。既存データは上書きされません。</li>
                 <li>移行前に重要なデータのバックアップを取ることをお勧めします。</li>
+                <li>大量データの移行には時間がかかる場合があります。</li>
                 <li>同意履歴は法的要件のため、削除されることはありません。</li>
                 <li>Supabase接続が必要な操作は、接続が確立されている場合のみ実行できます。</li>
                 <li>ローカルデータは常にブラウザに保存され、アプリの動作に影響しません。</li>
+                <li>本番環境では1000人以上のユーザーに対応した最適化が適用されます。</li>
               </ul>
             </div>
           </div>

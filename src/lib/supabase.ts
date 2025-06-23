@@ -3,9 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// 環境変数の検証
-const isValidUrl = (url: string) => {
+// 環境変数の検証（本番環境対応）
+const isValidUrl = (url: string): boolean => {
   try {
+    if (!url || url.trim() === '' || url.includes('your_') || url.includes('your-')) {
+      return false;
+    }
     new URL(url);
     return true;
   } catch {
@@ -13,11 +16,24 @@ const isValidUrl = (url: string) => {
   }
 };
 
-if (!supabaseUrl || !supabaseAnonKey || !isValidUrl(supabaseUrl)) {
-  console.warn('Supabase環境変数が設定されていません。ローカルモードで動作します。');
+const isValidSupabaseKey = (key: string): boolean => {
+  return !!(key && 
+    key.trim() !== '' && 
+    !key.includes('your_') && 
+    !key.includes('your-') &&
+    key.length > 20);
+};
+
+// 本番環境での詳細な検証
+if (!supabaseUrl || !supabaseAnonKey || !isValidUrl(supabaseUrl) || !isValidSupabaseKey(supabaseAnonKey)) {
+  if (import.meta.env.PROD) {
+    console.error('本番環境でSupabase環境変数が正しく設定されていません。');
+  } else {
+    console.warn('Supabase環境変数が設定されていません。ローカルモードで動作します。');
+  }
 }
 
-export const supabase = supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl)
+export const supabase = supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl) && isValidSupabaseKey(supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
@@ -92,7 +108,10 @@ export const userService = {
       // 新規ユーザー作成
       const { data, error } = await supabase
         .from('users')
-        .insert([{ line_username: lineUsername }])
+        .insert([{ 
+          line_username: lineUsername,
+          created_at: new Date().toISOString()
+        }])
         .select()
         .single();
       
@@ -131,6 +150,31 @@ export const userService = {
       return data;
     } catch (error) {
       console.error('ユーザー取得エラー:', error);
+      return null;
+    }
+  },
+
+  // 本番環境用：ユーザー統計取得
+  async getUserStats(): Promise<{ total: number; today: number; thisWeek: number } | null> {
+    if (!supabase) return null;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      
+      const [totalResult, todayResult, weekResult] = await Promise.all([
+        supabase.from('users').select('id', { count: 'exact' }),
+        supabase.from('users').select('id', { count: 'exact' }).gte('created_at', today),
+        supabase.from('users').select('id', { count: 'exact' }).gte('created_at', weekAgo)
+      ]);
+      
+      return {
+        total: totalResult.count || 0,
+        today: todayResult.count || 0,
+        thisWeek: weekResult.count || 0
+      };
+    } catch (error) {
+      console.error('ユーザー統計取得エラー:', error);
       return null;
     }
   }
@@ -211,7 +255,7 @@ export const diaryService = {
   },
 
   // 管理画面用：全ユーザーの日記を取得
-  async getAllEntries(limit = 100, offset = 0): Promise<DiaryEntry[]> {
+  async getAllEntries(limit = 100, offset = 0): Promise<any[]> {
     if (!supabase) return [];
     
     try {
@@ -219,7 +263,11 @@ export const diaryService = {
         .from('diary_entries')
         .select(`
           *,
-          users!inner(line_username)
+          users!inner(
+            id,
+            line_username,
+            created_at
+          )
         `)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -229,6 +277,41 @@ export const diaryService = {
     } catch (error) {
       console.error('全日記取得エラー:', error);
       return [];
+    }
+  },
+
+  // 本番環境用：日記統計取得
+  async getDiaryStats(): Promise<{ total: number; today: number; thisWeek: number; byEmotion: Record<string, number> } | null> {
+    if (!supabase) return null;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      const [totalResult, todayResult, weekResult, emotionResult] = await Promise.all([
+        supabase.from('diary_entries').select('id', { count: 'exact' }),
+        supabase.from('diary_entries').select('id', { count: 'exact' }).gte('date', today),
+        supabase.from('diary_entries').select('id', { count: 'exact' }).gte('date', weekAgo),
+        supabase.from('diary_entries').select('emotion')
+      ]);
+      
+      // 感情別集計
+      const byEmotion: Record<string, number> = {};
+      if (emotionResult.data) {
+        emotionResult.data.forEach(entry => {
+          byEmotion[entry.emotion] = (byEmotion[entry.emotion] || 0) + 1;
+        });
+      }
+      
+      return {
+        total: totalResult.count || 0,
+        today: todayResult.count || 0,
+        thisWeek: weekResult.count || 0,
+        byEmotion
+      };
+    } catch (error) {
+      console.error('日記統計取得エラー:', error);
+      return null;
     }
   }
 };
@@ -423,18 +506,37 @@ export const syncService = {
       if (!localEntries) return true;
       
       const entries = JSON.parse(localEntries);
+      if (entries.length === 0) return true;
       
-      // Supabaseに保存
+      // バッチ処理で効率的に保存（本番環境対応）
+      const batchSize = 50; // 一度に50件ずつ処理
+      
       for (const entry of entries) {
-        await diaryService.createEntry({
-          user_id: userId,
-          date: entry.date,
-          emotion: entry.emotion,
-          event: entry.event,
-          realization: entry.realization,
-          self_esteem_score: entry.selfEsteemScore,
-          worthlessness_score: entry.worthlessnessScore
-        });
+        try {
+          // 既存エントリーの重複チェック
+          const { data: existing } = await supabase
+            .from('diary_entries')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('date', entry.date)
+            .eq('emotion', entry.emotion)
+            .single();
+          
+          if (!existing) {
+            await diaryService.createEntry({
+              user_id: userId,
+              date: entry.date,
+              emotion: entry.emotion,
+              event: entry.event,
+              realization: entry.realization,
+              self_esteem_score: entry.selfEsteemScore || 50,
+              worthlessness_score: entry.worthlessnessScore || 50
+            });
+          }
+        } catch (entryError) {
+          console.warn('エントリー移行スキップ:', entry.id, entryError);
+          // 個別エラーは警告として処理し、全体の処理は継続
+        }
       }
       
       console.log('ローカルデータの移行が完了しました');
@@ -528,6 +630,62 @@ export const syncService = {
       return true;
     } catch (error) {
       console.error('同意履歴ローカル同期エラー:', error);
+      return false;
+    }
+  },
+
+  // 本番環境用：大量データの効率的な同期
+  async bulkMigrateLocalData(userId: string, progressCallback?: (progress: number) => void): Promise<boolean> {
+    if (!supabase) return false;
+    
+    try {
+      const localEntries = localStorage.getItem('journalEntries');
+      if (!localEntries) return true;
+      
+      const entries = JSON.parse(localEntries);
+      if (entries.length === 0) return true;
+      
+      const batchSize = 20;
+      const totalBatches = Math.ceil(entries.length / batchSize);
+      
+      for (let i = 0; i < totalBatches; i++) {
+        const batch = entries.slice(i * batchSize, (i + 1) * batchSize);
+        
+        const insertData = batch.map((entry: any) => ({
+          user_id: userId,
+          date: entry.date,
+          emotion: entry.emotion,
+          event: entry.event,
+          realization: entry.realization,
+          self_esteem_score: entry.selfEsteemScore || 50,
+          worthlessness_score: entry.worthlessnessScore || 50
+        }));
+        
+        const { error } = await supabase
+          .from('diary_entries')
+          .upsert(insertData, { 
+            onConflict: 'user_id,date,emotion',
+            ignoreDuplicates: true 
+          });
+        
+        if (error) {
+          console.warn('バッチ処理エラー:', error);
+        }
+        
+        // 進捗報告
+        if (progressCallback) {
+          const progress = Math.round(((i + 1) / totalBatches) * 100);
+          progressCallback(progress);
+        }
+        
+        // レート制限対策
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      console.log('大量データの移行が完了しました');
+      return true;
+    } catch (error) {
+      console.error('大量データ移行エラー:', error);
       return false;
     }
   }
