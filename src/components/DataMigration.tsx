@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users } from 'lucide-react';
+import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users, Info } from 'lucide-react';
 import { useSupabase } from '../hooks/useSupabase';
-import { syncService, userService, consentService } from '../lib/supabase';
+import { syncService, userService, consentService, supabase } from '../lib/supabase';
 
 const DataMigration: React.FC = () => {
   const { isConnected, currentUser, loading } = useSupabase();
@@ -12,6 +12,7 @@ const DataMigration: React.FC = () => {
   const [supabaseDataCount, setSupabaseDataCount] = useState(0);
   const [localConsentCount, setLocalConsentCount] = useState(0);
   const [supabaseConsentCount, setSupabaseConsentCount] = useState(0);
+  const [userExists, setUserExists] = useState(false);
 
   React.useEffect(() => {
     checkDataCounts();
@@ -19,6 +20,16 @@ const DataMigration: React.FC = () => {
 
   const checkDataCounts = () => {
     // ローカルデータ数をチェック
+    const lineUsername = localStorage.getItem('line-username');
+    if (lineUsername && isConnected) {
+      // ユーザーの存在確認
+      userService.getUserByUsername(lineUsername).then(user => {
+        setUserExists(!!user);
+      }).catch(() => {
+        setUserExists(false);
+      });
+    }
+    
     const localEntries = localStorage.getItem('journalEntries');
     if (localEntries) {
       const entries = JSON.parse(localEntries);
@@ -41,12 +52,21 @@ const DataMigration: React.FC = () => {
     setSupabaseConsentCount(0);
     
     if (isConnected) {
-      // 実際のSupabaseデータ数を取得
+      // Supabaseの同意履歴数を取得
       consentService.getAllConsentHistories().then(histories => {
         setSupabaseConsentCount(histories.length);
       }).catch(() => {
         setSupabaseConsentCount(0);
       });
+      
+      // Supabaseの日記データ数を取得
+      if (currentUser) {
+        supabase?.from('diary_entries')
+          .select('id', { count: 'exact' })
+          .eq('user_id', currentUser.id)
+          .then(({ count }) => setSupabaseDataCount(count || 0))
+          .catch(() => setSupabaseDataCount(0));
+      }
     }
   };
 
@@ -165,7 +185,7 @@ const DataMigration: React.FC = () => {
       // まず既存ユーザーをチェック
       const existingUser = await userService.getUserByUsername(lineUsername);
       if (existingUser) {
-        alert('ユーザーは既に存在します！');
+        setMigrationStatus('ユーザーは既に存在します。データ移行が可能になりました。');
         window.location.reload();
         return;
       }
@@ -173,7 +193,7 @@ const DataMigration: React.FC = () => {
       // 新規ユーザー作成
       const user = await userService.createUser(lineUsername);
       if (user) {
-        alert('ユーザーが作成されました！');
+        setMigrationStatus('ユーザーが作成されました！データ移行が可能になりました。');
         window.location.reload(); // ページをリロードして状態を更新
       } else {
         alert('ユーザー作成に失敗しました。');
@@ -184,7 +204,7 @@ const DataMigration: React.FC = () => {
       // エラーメッセージを詳細に表示
       if (error instanceof Error) {
         if (error.message.includes('duplicate key')) {
-          alert('このユーザー名は既に登録されています。既存のユーザーを使用します。');
+          setMigrationStatus('このユーザー名は既に登録されています。既存のユーザーを使用します。');
           window.location.reload();
         } else {
           alert(`ユーザー作成中にエラーが発生しました: ${error.message}`);
@@ -238,20 +258,30 @@ const DataMigration: React.FC = () => {
             <span>ユーザー情報</span>
           </h3>
           
-          {currentUser ? (
+          {currentUser || userExists ? (
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
                 <span className="text-sm font-jp-normal text-gray-700">
-                  ユーザーID: {currentUser.id}
+                  ユーザーID: {currentUser?.id || 'Supabaseに存在'}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
                 <span className="text-sm font-jp-normal text-gray-700">
-                  ユーザー名: {currentUser.line_username}
+                  ユーザー名: {currentUser?.line_username || localStorage.getItem('line-username')}
                 </span>
               </div>
+              {userExists && !currentUser && (
+                <div className="bg-blue-100 rounded-lg p-3 border border-blue-200 mt-3">
+                  <div className="flex items-center space-x-2">
+                    <Info className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-jp-medium text-blue-800">
+                      Supabaseにユーザーが存在します。データ移行が可能です。
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -318,7 +348,7 @@ const DataMigration: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <button
               onClick={handleMigrateToSupabase}
-              disabled={migrating || !isConnected || !currentUser || localDataCount === 0}
+              disabled={migrating || !isConnected || (!currentUser && !userExists) || localDataCount === 0}
               className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-jp-medium transition-colors"
             >
               {migrating ? (
@@ -331,7 +361,7 @@ const DataMigration: React.FC = () => {
 
             <button
               onClick={handleSyncFromSupabase}
-              disabled={syncing || !isConnected || !currentUser}
+              disabled={syncing || !isConnected || (!currentUser && !userExists)}
               className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-jp-medium transition-colors"
             >
               {syncing ? (
@@ -347,7 +377,7 @@ const DataMigration: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               onClick={handleMigrateConsentsToSupabase}
-              disabled={migrating || !isConnected || !currentUser || localConsentCount === 0}
+              disabled={migrating || !isConnected || (!currentUser && !userExists) || localConsentCount === 0}
               className="flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-jp-medium transition-colors"
             >
               {migrating ? (
@@ -360,7 +390,7 @@ const DataMigration: React.FC = () => {
 
             <button
               onClick={handleSyncConsentsFromSupabase}
-              disabled={syncing || !isConnected || !currentUser}
+              disabled={syncing || !isConnected || (!currentUser && !userExists)}
               className="flex items-center justify-center space-x-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-jp-medium transition-colors"
             >
               {syncing ? (

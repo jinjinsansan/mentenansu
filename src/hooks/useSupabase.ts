@@ -39,6 +39,11 @@ export const useSupabase = () => {
         // 既存ユーザーの確認
         const lineUsername = localStorage.getItem('line-username');
         if (lineUsername) {
+          // まず既存ユーザーをチェック
+          const existingUser = await userService.getUserByUsername(lineUsername);
+          if (existingUser) {
+            setCurrentUser(existingUser);
+          }
           await initializeUser(lineUsername);
         }
       }
