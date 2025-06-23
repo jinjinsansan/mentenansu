@@ -103,10 +103,6 @@ const DiaryPage: React.FC = () => {
       return;
     }
 
-    await saveEntry();
-  };
-
-  const saveEntry = async () => {
     setSaving(true);
 
     try {
@@ -183,18 +179,6 @@ const DiaryPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleLineAuthComplete = async () => {
-    setShowLineAuth(false);
-    
-    // 認証完了後は何もしない（LINE認証は任意のため）
-    setPendingFormData(null);
-  };
-
-  const handleLineAuthCancel = () => {
-    setShowLineAuth(false);
-    setPendingFormData(null);
   };
 
   const handleShare = () => {
