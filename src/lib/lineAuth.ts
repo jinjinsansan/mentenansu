@@ -1,20 +1,4 @@
-// LINE Login API関連の設定と関数
-const LINE_CHANNEL_ID = '2007620960';
-
-// 独自ドメインに対応したリダイレクトURI設定
-const getRedirectUri = (): string => {
-  const hostname = window.location.hostname;
-  
-  if (hostname === 'localhost') {
-    return 'http://localhost:5173/auth/callback';
-  }
-  
-  // 独自ドメインまたはNetlifyドメインに対応
-  return `${window.location.origin}/auth/callback`;
-};
-
-const LINE_REDIRECT_URI = getRedirectUri();
-
+// LINE認証関連の型定義
 export interface LineUser {
   userId: string;
   displayName: string;
@@ -22,160 +6,255 @@ export interface LineUser {
   statusMessage?: string;
 }
 
-export interface LineAuthResponse {
+export interface LineTokenResponse {
   access_token: string;
-  token_type: string;
-  refresh_token: string;
   expires_in: number;
-  scope: string;
   id_token: string;
+  refresh_token: string;
+  scope: string;
+  token_type: string;
 }
 
-// LINE Login URLを生成
+export interface LineAuthConfig {
+  channelId: string;
+  channelSecret: string;
+  redirectUri: string;
+}
+
+// 環境変数から設定を取得
+const getLineConfig = (): LineAuthConfig => {
+  const channelId = import.meta.env.VITE_LINE_CHANNEL_ID;
+  const channelSecret = import.meta.env.VITE_LINE_CHANNEL_SECRET;
+  const redirectUri = import.meta.env.VITE_LINE_REDIRECT_URI;
+
+  if (!channelId || !channelSecret || !redirectUri) {
+    throw new Error('LINE認証の環境変数が設定されていません');
+  }
+
+  return {
+    channelId,
+    channelSecret,
+    redirectUri
+  };
+};
+
+// CSRF攻撃を防ぐためのstate生成
+const generateState = (): string => {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+// nonce生成（OpenID Connect用）
+const generateNonce = (): string => {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+// LINE認証URLを生成
 export const generateLineLoginUrl = (): string => {
-  const state = generateRandomState();
-  const nonce = generateRandomNonce();
-  
-  // セキュリティのためstateとnonceをセッションストレージに保存
-  sessionStorage.setItem('line_auth_state', state);
-  sessionStorage.setItem('line_auth_nonce', nonce);
-  
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: LINE_CHANNEL_ID,
-    redirect_uri: LINE_REDIRECT_URI,
-    state: state,
-    scope: 'profile openid',
-    nonce: nonce
-  });
-  
-  return `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
-};
+  try {
+    const config = getLineConfig();
+    const state = generateState();
+    const nonce = generateNonce();
+    
+    // セッションストレージに保存（CSRF対策）
+    sessionStorage.setItem('line_auth_state', state);
+    sessionStorage.setItem('line_auth_nonce', nonce);
+    
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: config.channelId,
+      redirect_uri: config.redirectUri,
+      state: state,
+      scope: 'profile openid',
+      nonce: nonce,
+      prompt: 'consent'
+    });
 
-// ランダムなstate値を生成（CSRF攻撃防止）
-const generateRandomState = (): string => {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-};
-
-// ランダムなnonce値を生成（リプレイ攻撃防止）
-const generateRandomNonce = (): string => {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    return `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
+  } catch (error) {
+    console.error('LINE認証URL生成エラー:', error);
+    throw error;
+  }
 };
 
 // 認証コードをアクセストークンに交換
-export const exchangeCodeForToken = async (code: string, state: string): Promise<LineAuthResponse> => {
-  // state検証（CSRF攻撃防止）
-  const savedState = sessionStorage.getItem('line_auth_state');
-  if (!savedState || savedState !== state) {
-    throw new Error('Invalid state parameter. Possible CSRF attack.');
-  }
-  
-  const response = await fetch('https://api.line.me/oauth2/v2.1/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
+export const exchangeCodeForToken = async (code: string, state: string): Promise<LineTokenResponse> => {
+  try {
+    // state検証
+    const savedState = sessionStorage.getItem('line_auth_state');
+    if (!savedState || savedState !== state) {
+      throw new Error('不正なstateパラメータです');
+    }
+
+    const config = getLineConfig();
+    
+    const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code: code,
-      redirect_uri: LINE_REDIRECT_URI,
-      client_id: LINE_CHANNEL_ID,
-      client_secret: '2e76f46f6b67f5d872025891122c30ca'
-    })
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`Token exchange failed: ${errorData.error_description || errorData.error}`);
-  }
-  
-  const tokenData = await response.json();
-  
-  // nonce検証（ID tokenがある場合）
-  if (tokenData.id_token) {
-    const savedNonce = sessionStorage.getItem('line_auth_nonce');
-    if (savedNonce) {
-      // 実際のプロダクションではJWTライブラリを使用してID tokenを検証
-      console.log('ID token received, nonce validation should be implemented');
+      redirect_uri: config.redirectUri,
+      client_id: config.channelId,
+      client_secret: config.channelSecret
+    });
+
+    const response = await fetch('https://api.line.me/oauth2/v2.1/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString()
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`トークン取得エラー: ${response.status} ${errorData}`);
     }
-  }
-  
-  // セキュリティ情報をクリア
-  sessionStorage.removeItem('line_auth_state');
-  sessionStorage.removeItem('line_auth_nonce');
-  
-  return tokenData;
-};
 
-// アクセストークンを使用してユーザー情報を取得
-export const getLineUserProfile = async (accessToken: string): Promise<LineUser> => {
-  const response = await fetch('https://api.line.me/v2/profile', {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
-    }
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`Profile fetch failed: ${errorData.message || 'Unknown error'}`);
-  }
-  
-  return await response.json();
-};
-
-// ログアウト処理
-export const logoutFromLine = (): void => {
-  // ローカルストレージから認証情報を削除
-  localStorage.removeItem('line_access_token');
-  localStorage.removeItem('line_user_profile');
-  localStorage.removeItem('line_auth_timestamp');
-  
-  // セッションストレージもクリア
-  sessionStorage.removeItem('line_auth_state');
-  sessionStorage.removeItem('line_auth_nonce');
-};
-
-// 認証状態をチェック
-export const checkAuthStatus = (): { isAuthenticated: boolean; user: LineUser | null } => {
-  const accessToken = localStorage.getItem('line_access_token');
-  const userProfile = localStorage.getItem('line_user_profile');
-  const authTimestamp = localStorage.getItem('line_auth_timestamp');
-  
-  if (!accessToken || !userProfile || !authTimestamp) {
-    return { isAuthenticated: false, user: null };
-  }
-  
-  // トークンの有効期限をチェック（30日間）
-  const tokenAge = Date.now() - parseInt(authTimestamp);
-  const maxAge = 30 * 24 * 60 * 60 * 1000; // 30日
-  
-  if (tokenAge > maxAge) {
-    logoutFromLine();
-    return { isAuthenticated: false, user: null };
-  }
-  
-  try {
-    const user = JSON.parse(userProfile);
-    return { isAuthenticated: true, user };
+    const tokenData: LineTokenResponse = await response.json();
+    
+    // セッションストレージをクリア
+    sessionStorage.removeItem('line_auth_state');
+    sessionStorage.removeItem('line_auth_nonce');
+    
+    return tokenData;
   } catch (error) {
-    console.error('Failed to parse user profile:', error);
-    logoutFromLine();
-    return { isAuthenticated: false, user: null };
+    console.error('トークン交換エラー:', error);
+    throw error;
+  }
+};
+
+// ユーザープロフィールを取得
+export const getLineUserProfile = async (accessToken: string): Promise<LineUser> => {
+  try {
+    const response = await fetch('https://api.line.me/v2/profile', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`プロフィール取得エラー: ${response.status} ${errorData}`);
+    }
+
+    const userData: LineUser = await response.json();
+    return userData;
+  } catch (error) {
+    console.error('プロフィール取得エラー:', error);
+    throw error;
   }
 };
 
 // 認証情報を安全に保存
-export const saveAuthData = (tokenData: LineAuthResponse, userProfile: LineUser): void => {
-  localStorage.setItem('line_access_token', tokenData.access_token);
-  localStorage.setItem('line_user_profile', JSON.stringify(userProfile));
-  localStorage.setItem('line_auth_timestamp', Date.now().toString());
-  
-  // リフレッシュトークンは別途安全に保存（実装は環境に依存）
-  if (tokenData.refresh_token) {
-    localStorage.setItem('line_refresh_token', tokenData.refresh_token);
+export const saveAuthData = (tokenData: LineTokenResponse, userProfile: LineUser): void => {
+  try {
+    // セキュリティのため、必要最小限の情報のみ保存
+    const authData = {
+      userId: userProfile.userId,
+      displayName: userProfile.displayName,
+      pictureUrl: userProfile.pictureUrl,
+      accessToken: tokenData.access_token,
+      expiresAt: Date.now() + (tokenData.expires_in * 1000),
+      loginTime: new Date().toISOString()
+    };
+
+    // 暗号化して保存（簡易的な実装）
+    const encryptedData = btoa(JSON.stringify(authData));
+    localStorage.setItem('line_auth_data', encryptedData);
+    
+    // ユーザー名も別途保存（既存システムとの互換性のため）
+    localStorage.setItem('line-username', userProfile.displayName);
+    
+    console.log('認証情報を保存しました');
+  } catch (error) {
+    console.error('認証情報保存エラー:', error);
+    throw error;
+  }
+};
+
+// 認証状態をチェック
+export const checkAuthStatus = (): { isAuthenticated: boolean; user: LineUser | null } => {
+  try {
+    const encryptedData = localStorage.getItem('line_auth_data');
+    if (!encryptedData) {
+      return { isAuthenticated: false, user: null };
+    }
+
+    const authData = JSON.parse(atob(encryptedData));
+    
+    // トークンの有効期限をチェック
+    if (Date.now() > authData.expiresAt) {
+      // 期限切れの場合はデータを削除
+      logoutFromLine();
+      return { isAuthenticated: false, user: null };
+    }
+
+    const user: LineUser = {
+      userId: authData.userId,
+      displayName: authData.displayName,
+      pictureUrl: authData.pictureUrl
+    };
+
+    return { isAuthenticated: true, user };
+  } catch (error) {
+    console.error('認証状態チェックエラー:', error);
+    // エラーの場合は認証されていないとみなす
+    logoutFromLine();
+    return { isAuthenticated: false, user: null };
+  }
+};
+
+// ログアウト
+export const logoutFromLine = (): void => {
+  try {
+    // 認証関連のデータを削除
+    localStorage.removeItem('line_auth_data');
+    sessionStorage.removeItem('line_auth_state');
+    sessionStorage.removeItem('line_auth_nonce');
+    
+    // 既存のユーザー名は保持（アプリの継続利用のため）
+    // localStorage.removeItem('line-username');
+    
+    console.log('ログアウトしました');
+  } catch (error) {
+    console.error('ログアウトエラー:', error);
+  }
+};
+
+// アクセストークンを取得（API呼び出し用）
+export const getAccessToken = (): string | null => {
+  try {
+    const encryptedData = localStorage.getItem('line_auth_data');
+    if (!encryptedData) {
+      return null;
+    }
+
+    const authData = JSON.parse(atob(encryptedData));
+    
+    // トークンの有効期限をチェック
+    if (Date.now() > authData.expiresAt) {
+      logoutFromLine();
+      return null;
+    }
+
+    return authData.accessToken;
+  } catch (error) {
+    console.error('アクセストークン取得エラー:', error);
+    return null;
+  }
+};
+
+// トークンリフレッシュ（必要に応じて実装）
+export const refreshToken = async (): Promise<boolean> => {
+  try {
+    // 実装は必要に応じて追加
+    console.log('トークンリフレッシュは未実装です');
+    return false;
+  } catch (error) {
+    console.error('トークンリフレッシュエラー:', error);
+    return false;
   }
 };

@@ -37,7 +37,7 @@ const AuthCallback: React.FC = () => {
         setMessage('認証情報を保存中...');
         
         // 認証情報を安全に保存
-        saveAuthData(tokenData, userProfile);
+        await saveAuthData(tokenData, userProfile);
         
         setStatus('success');
         setMessage('ログインが完了しました！');
