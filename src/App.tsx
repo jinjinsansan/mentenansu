@@ -3,8 +3,8 @@ import { Calendar, Search, TrendingUp, Plus, Edit3, Trash2, ChevronLeft, Chevron
 import PrivacyConsent from './components/PrivacyConsent';
 import MaintenanceMode from './components/MaintenanceMode';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
-// import LineAuthGuard from './components/LineAuthGuard';
-// import AuthCallback from './pages/AuthCallback';
+import LineAuthGuard from './components/LineAuthGuard';
+import AuthCallback from './pages/AuthCallback';
 import AdminPanel from './components/AdminPanel';
 import DataMigration from './components/DataMigration';
 import DiaryPage from './pages/DiaryPage';
@@ -18,7 +18,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
 
 // URLパスをチェックしてコールバックページかどうか判定
-// const isAuthCallback = window.location.pathname === '/auth/callback';
+const isAuthCallback = window.location.pathname === '/auth/callback';
 
 interface JournalEntry {
   id: string;
@@ -1003,13 +1003,13 @@ const App: React.FC = () => {
   }
 
   return (
-    // <>
-    //   {/* 認証コールバックページの場合は特別処理 */}
-    //   {isAuthCallback ? (
-    //     <AuthCallback />
-    //   ) : (
-    //     <LineAuthGuard>
-    <div className="min-h-screen bg-gray-50">
+    <>
+      {/* 認証コールバックページの場合は特別処理 */}
+      {isAuthCallback ? (
+        <AuthCallback />
+      ) : (
+        <LineAuthGuard>
+          <div className="min-h-screen bg-gray-50">
       {!showPrivacyConsent && currentPage !== 'home' && (
         <>
           {/* ヘッダー */}
@@ -1222,10 +1222,10 @@ const App: React.FC = () => {
       
       {/* カウンセラーログインモーダル */}
       {renderCounselorLoginModal()}
-    </div>
-    //     </LineAuthGuard>
-    //   )}
-    // </>
+          </div>
+        </LineAuthGuard>
+      )}
+    </>
   );
 };
 
