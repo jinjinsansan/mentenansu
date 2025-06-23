@@ -103,19 +103,6 @@ const DiaryPage: React.FC = () => {
       return;
     }
 
-    // LINE認証チェック
-    const { isAuthenticated } = checkAuthStatus();
-    if (!isAuthenticated) {
-      // 認証されていない場合、フォームデータを保存してLINE認証を促す
-      setPendingFormData({
-        ...formData,
-        selfEsteemScore: formData.emotion === '無価値感' ? worthlessnessScores.todaySelfEsteem : formData.selfEsteemScore,
-        worthlessnessScore: formData.emotion === '無価値感' ? worthlessnessScores.todayWorthlessness : formData.worthlessnessScore
-      });
-      setShowLineAuth(true);
-      return;
-    }
-
     await saveEntry();
   };
 
@@ -201,79 +188,8 @@ const DiaryPage: React.FC = () => {
   const handleLineAuthComplete = async () => {
     setShowLineAuth(false);
     
-    if (pendingFormData) {
-      // 認証完了後、保存していたデータで日記を保存
-      try {
-        setSaving(true);
-        
-        // 最初にやることページで保存されたスコアを取得
-        const savedInitialScores = localStorage.getItem('initialScores');
-        let finalFormData = { ...pendingFormData };
-        
-        // 一番最初の日記で無価値感を選んだ場合、保存されたスコアを使用
-        if (pendingFormData.emotion === '無価値感' && savedInitialScores) {
-          const existingEntries = localStorage.getItem('journalEntries');
-          const entries = existingEntries ? JSON.parse(existingEntries) : [];
-          
-          // 無価値感の日記が初回の場合
-          const worthlessnessEntries = entries.filter((entry: any) => entry.emotion === '無価値感');
-          
-          if (worthlessnessEntries.length === 0) {
-            // 初回の無価値感日記の場合、保存されたスコアを使用
-            const initialScores = JSON.parse(savedInitialScores);
-            if (initialScores.selfEsteemScore && initialScores.worthlessnessScore) {
-              finalFormData = {
-                ...pendingFormData,
-                selfEsteemScore: parseInt(initialScores.selfEsteemScore),
-                worthlessnessScore: parseInt(initialScores.worthlessnessScore)
-              };
-            }
-          }
-        }
-        
-        // ローカルストレージに保存
-        const existingEntries = localStorage.getItem('journalEntries');
-        const entries = existingEntries ? JSON.parse(existingEntries) : [];
-        
-        const newEntry = {
-          id: Date.now().toString(),
-          date: finalFormData.date,
-          emotion: finalFormData.emotion,
-          event: finalFormData.event,
-          realization: finalFormData.realization,
-          selfEsteemScore: finalFormData.selfEsteemScore,
-          worthlessnessScore: finalFormData.worthlessnessScore
-        };
-        
-        entries.unshift(newEntry);
-        localStorage.setItem('journalEntries', JSON.stringify(entries));
-        
-        alert('日記を保存しました！');
-      
-        // フォームをリセット
-        setFormData({
-          date: new Date().toISOString().split('T')[0],
-          event: '',
-          emotion: '',
-          selfEsteemScore: 50,
-          worthlessnessScore: 50,
-          realization: ''
-        });
-        setWorthlessnessScores({
-          yesterdaySelfEsteem: 50,
-          yesterdayWorthlessness: 50,
-          todaySelfEsteem: 50,
-          todayWorthlessness: 50
-        });
-        
-      } catch (error) {
-        console.error('保存エラー:', error);
-        alert('保存に失敗しました。もう一度お試しください。');
-      } finally {
-        setSaving(false);
-        setPendingFormData(null);
-      }
-    }
+    // 認証完了後は何もしない（LINE認証は任意のため）
+    setPendingFormData(null);
   };
 
   const handleLineAuthCancel = () => {
@@ -375,16 +291,6 @@ const DiaryPage: React.FC = () => {
   };
 
   return (
-    <>
-      {showLineAuth && (
-        <LineAuthGuard 
-          showLineLogin={true}
-          onCloseLineLogin={handleLineAuthCancel}
-        >
-          <div></div>
-        </LineAuthGuard>
-      )}
-      
     <div className="w-full max-w-2xl mx-auto space-y-6 px-2">
       {/* 今日の出来事セクション */}
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -728,7 +634,6 @@ const DiaryPage: React.FC = () => {
         </div>
       </div>
     </div>
-    </>
   );
 };
 
