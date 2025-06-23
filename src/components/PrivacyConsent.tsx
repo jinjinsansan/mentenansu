@@ -133,3 +133,5 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
 };
 
 export default PrivacyConsent;
+  )
+}
