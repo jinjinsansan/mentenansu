@@ -87,6 +87,14 @@ export const userService = {
     if (!supabase) return null;
     
     try {
+      // まず既存ユーザーをチェック
+      const existingUser = await this.getUserByUsername(lineUsername);
+      if (existingUser) {
+        console.log('ユーザーは既に存在します:', existingUser);
+        return existingUser;
+      }
+      
+      // 新規ユーザー作成
       const { data, error } = await supabase
         .from('users')
         .insert([{ line_username: lineUsername }])
@@ -97,6 +105,13 @@ export const userService = {
       return data;
     } catch (error) {
       console.error('ユーザー作成エラー:', error);
+      
+      // 重複エラーの場合は既存ユーザーを返す
+      if (error instanceof Error && error.message.includes('duplicate key')) {
+        console.log('重複エラーのため既存ユーザーを取得します');
+        return await this.getUserByUsername(lineUsername);
+      }
+      
       return null;
     }
   },
@@ -111,7 +126,13 @@ export const userService = {
         .eq('line_username', lineUsername)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        // ユーザーが見つからない場合は null を返す
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        throw error;
+      }
       return data;
     } catch (error) {
       console.error('ユーザー取得エラー:', error);

@@ -62,10 +62,15 @@ export const useSupabase = () => {
         user = await userService.createUser(lineUsername);
         
         if (user) {
+          console.log('新規ユーザーを作成しました:', user);
           // ローカルデータを移行
           await syncService.migrateLocalData(user.id);
+        } else {
+          console.error('ユーザー作成に失敗しました');
+          return null;
         }
       } else {
+        console.log('既存ユーザーを使用します:', user);
         // 既存ユーザーの場合、Supabaseからローカルに同期
         await syncService.syncToLocal(user.id);
       }

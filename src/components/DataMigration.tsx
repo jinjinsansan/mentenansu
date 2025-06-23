@@ -162,6 +162,15 @@ const DataMigration: React.FC = () => {
     }
 
     try {
+      // まず既存ユーザーをチェック
+      const existingUser = await userService.getUserByUsername(lineUsername);
+      if (existingUser) {
+        alert('ユーザーは既に存在します！');
+        window.location.reload();
+        return;
+      }
+      
+      // 新規ユーザー作成
       const user = await userService.createUser(lineUsername);
       if (user) {
         alert('ユーザーが作成されました！');
@@ -171,7 +180,18 @@ const DataMigration: React.FC = () => {
       }
     } catch (error) {
       console.error('ユーザー作成エラー:', error);
-      alert('ユーザー作成中にエラーが発生しました。');
+      
+      // エラーメッセージを詳細に表示
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key')) {
+          alert('このユーザー名は既に登録されています。既存のユーザーを使用します。');
+          window.location.reload();
+        } else {
+          alert(`ユーザー作成中にエラーが発生しました: ${error.message}`);
+        }
+      } else {
+        alert('ユーザー作成中に不明なエラーが発生しました。');
+      }
     }
   };
 
