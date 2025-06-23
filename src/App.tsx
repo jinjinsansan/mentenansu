@@ -16,6 +16,7 @@ import EmotionTypes from './pages/EmotionTypes';
 import Support from './pages/Support';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
+import { useAutoSync } from './hooks/useAutoSync';
 
 // URLパスをチェックしてコールバックページかどうか判定
 // const isAuthCallback = window.location.pathname === '/auth/callback';
@@ -55,6 +56,9 @@ const App: React.FC = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const { isMaintenanceMode, config: maintenanceConfig, loading: maintenanceLoading } = useMaintenanceStatus();
   const { isConnected, currentUser, initializeUser } = useSupabase();
+  
+  // 自動同期フックを追加（バックグラウンドで動作）
+  useAutoSync();
 
   const [formData, setFormData] = useState({
     emotion: '',
@@ -80,7 +84,7 @@ const App: React.FC = () => {
       setShowPrivacyConsent(false);
       if (savedUsername) {
         setLineUsername(savedUsername);
-        // Supabaseユーザーを初期化
+        // Supabaseユーザーを初期化（自動同期が有効な場合は自動で処理される）
         initializeUser(savedUsername);
       }
     }
@@ -323,7 +327,19 @@ const App: React.FC = () => {
   const handleUsernameSubmit = (username: string) => {
     localStorage.setItem('line-username', username);
     setLineUsername(username);
-    // Supabaseユーザーを初期化
+    
+    // 同意履歴にユーザー名を追加
+    const existingHistories = localStorage.getItem('consent_histories');
+    if (existingHistories) {
+      const histories = JSON.parse(existingHistories);
+      const updatedHistories = histories.map((history: any) => ({
+        ...history,
+        line_username: history.line_username || username
+      }));
+      localStorage.setItem('consent_histories', JSON.stringify(updatedHistories));
+    }
+    
+    // Supabaseユーザーを初期化（自動同期が有効な場合は自動で処理される）
     initializeUser(username);
     setCurrentPage('how-to');
   };

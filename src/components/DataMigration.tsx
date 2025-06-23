@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users, Info } from 'lucide-react';
+import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users, Info, Settings } from 'lucide-react';
 import { useSupabase } from '../hooks/useSupabase';
 import { syncService, userService, consentService, supabase } from '../lib/supabase';
+import AutoSyncSettings from './AutoSyncSettings';
 
 const DataMigration: React.FC = () => {
   const { isConnected, currentUser, loading } = useSupabase();
@@ -13,6 +14,7 @@ const DataMigration: React.FC = () => {
   const [localConsentCount, setLocalConsentCount] = useState(0);
   const [supabaseConsentCount, setSupabaseConsentCount] = useState(0);
   const [userExists, setUserExists] = useState(false);
+  const [activeTab, setActiveTab] = useState<'manual' | 'auto'>('auto');
 
   React.useEffect(() => {
     checkDataCounts();
@@ -223,6 +225,37 @@ const DataMigration: React.FC = () => {
           <h1 className="text-2xl font-jp-bold text-gray-900">データ管理</h1>
         </div>
 
+        {/* タブナビゲーション */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('auto')}
+              className={`py-2 px-1 border-b-2 font-jp-medium text-sm ${
+                activeTab === 'auto'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              自動同期（推奨）
+            </button>
+            <button
+              onClick={() => setActiveTab('manual')}
+              className={`py-2 px-1 border-b-2 font-jp-medium text-sm ${
+                activeTab === 'manual'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              手動操作
+            </button>
+          </nav>
+        </div>
+
+        {/* タブコンテンツ */}
+        {activeTab === 'auto' ? (
+          <AutoSyncSettings />
+        ) : (
+          <div className="space-y-6">
         {/* 接続状態 */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <div className="flex items-center space-x-3 mb-4">
@@ -429,6 +462,8 @@ const DataMigration: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+        )}
       </div>
     </div>
   );
