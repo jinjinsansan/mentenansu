@@ -3,37 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// 環境変数の検証（本番環境対応）
-const isValidUrl = (url: string): boolean => {
-  try {
-    if (!url || url.trim() === '' || url.includes('your_supabase_project_url') || url.includes('your-supabase-anon-key')) {
-      return false;
-    }
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-const isValidSupabaseKey = (key: string): boolean => {
-  return !!(key && 
-    key.trim() !== '' && 
-    !key.includes('your_supabase_project_url') && 
-    !key.includes('your_supabase_anon_key') &&
-    key.length > 20);
-};
-
-// 本番環境での詳細な検証
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase環境変数が設定されていません。ローカルモードで動作します。');
-} else if (!isValidUrl(supabaseUrl) || !isValidSupabaseKey(supabaseAnonKey)) {
-  console.warn('Supabase環境変数が無効です。設定を確認してください。');
-  console.log('URL:', supabaseUrl ? 'あり' : 'なし');
-  console.log('Key:', supabaseAnonKey ? 'あり' : 'なし');
 }
 
-export const supabase = supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl) && isValidSupabaseKey(supabaseAnonKey)
+export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 

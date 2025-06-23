@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
-import { checkGoogleAuthStatus } from '../lib/googleAuth';
 
 const DiaryPage: React.FC = () => {
   const [formData, setFormData] = useState({
