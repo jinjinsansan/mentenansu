@@ -3,8 +3,8 @@ import { Calendar, Search, TrendingUp, Plus, Edit3, Trash2, ChevronLeft, Chevron
 import PrivacyConsent from './components/PrivacyConsent';
 import MaintenanceMode from './components/MaintenanceMode';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
-import LineAuthGuard from './components/LineAuthGuard';
-import AuthCallback from './pages/AuthCallback';
+import AdminPanel from './components/AdminPanel';
+import DataMigration from './components/DataMigration';
 import DiaryPage from './pages/DiaryPage';
 import DiarySearchPage from './pages/DiarySearchPage';
 import HowTo from './pages/HowTo';
@@ -14,9 +14,9 @@ import EmotionTypes from './pages/EmotionTypes';
 import Support from './pages/Support';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
-import { useAutoSync } from './hooks/useAutoSync';
-import { checkAuthStatus } from './lib/lineAuth';
 
+// URLパスをチェックしてコールバックページかどうか判定
+// const isAuthCallback = window.location.pathname === '/auth/callback';
 interface JournalEntry {
   id: string;
   date: string;
