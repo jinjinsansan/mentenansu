@@ -133,6 +133,7 @@ class HybridAuthSystem {
       return result;
     } catch (error) {
       console.error('メール送信エラー:', error);
+      }
   }
 
   // 確認コードの検証
