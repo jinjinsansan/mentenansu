@@ -19,6 +19,11 @@
 - **緊急度管理**: 3段階の緊急度設定・監視
 - **データ管理**: Supabaseとの連携・同期機能
 
+### 新機能（2025年1月21日実装）
+- **自動同期機能**: ローカルデータの自動Supabase同期
+- **同意履歴管理**: プライバシーポリシー同意の完全追跡
+- **メンテナンスモード**: システム保守時の適切な案内
+
 ## 🚀 技術スタック
 
 - **フロントエンド**: React + TypeScript
@@ -74,6 +79,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 - **counselors**: カウンセラー情報
 - **chat_rooms**: チャットルーム
 - **messages**: メッセージ
+- **consent_histories**: 同意履歴
 
 ## 👥 カウンセラーアカウント
 
@@ -126,6 +132,18 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 - ローカルストレージとSupabaseの双方向同期
 - データの移行・バックアップ機能
 - 接続状態の監視
+
+### 自動同期機能（新機能）
+- アプリ起動時の自動ユーザー作成・確認
+- 5分間隔でのローカルデータ自動同期
+- 手動同期オプション
+- エラーハンドリングと状態表示
+
+### 同意履歴管理（新機能）
+- プライバシーポリシー同意の完全追跡
+- 法的要件に対応した履歴保存
+- CSV出力機能
+- 管理画面での一覧・検索機能
 
 ## 🔒 セキュリティ
 
@@ -189,7 +207,8 @@ Netlifyの環境変数に以下を設定：
 src/
 ├── components/          # 共通コンポーネント
 │   ├── AdminPanel.tsx   # 管理画面
-│   ├── Chat.tsx         # チャット機能
+│   ├── AutoSyncSettings.tsx # 自動同期設定
+│   ├── ConsentHistoryManagement.tsx # 同意履歴管理
 │   └── ...
 ├── pages/               # ページコンポーネント
 │   ├── DiaryPage.tsx    # 日記作成
@@ -198,7 +217,9 @@ src/
 ├── lib/                 # ライブラリ
 │   └── supabase.ts      # Supabase設定
 ├── hooks/               # カスタムフック
-│   └── useSupabase.ts   # Supabase連携
+│   ├── useSupabase.ts   # Supabase連携
+│   ├── useAutoSync.ts   # 自動同期
+│   └── useMaintenanceStatus.ts # メンテナンス状態
 └── ...
 ```
 
