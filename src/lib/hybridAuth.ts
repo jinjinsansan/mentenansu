@@ -3,6 +3,8 @@
 // 第二段階：メールアドレス認証
 // 第三段階：バックアップ認証（合言葉）
 
+import { emailService } from './emailService';
+
 interface DeviceFingerprint {
   id: string;
   userAgent: string;
@@ -123,21 +125,17 @@ class HybridAuthSystem {
       attempts: 0
     });
 
-    // 実際の実装では、ここでメール送信APIを呼び出す
-    // 今回はデモ用にコンソールに出力
-    console.log(`確認コード: ${code} (メール: ${email})`);
-    
-    // デモ用：確認コードをアラートで表示（実際の実装では削除）
-    if (import.meta.env.DEV) {
-      setTimeout(() => {
-        alert(`デモ用確認コード: ${code}\n（実際の実装ではメールで送信されます）`);
-      }, 1000);
+    // EmailJSを使用してメール送信
+    try {
+      const result = await emailService.sendVerificationEmail(email, code);
+      return result;
+    } catch (error) {
+      console.error('メール送信エラー:', error);
+      return {
+        success: false,
+        message: 'メール送信に失敗しました。しばらく時間をおいて再度お試しください。'
+      };
     }
-
-    return { 
-      success: true, 
-      message: `確認コードを ${email} に送信しました。10分以内に入力してください。` 
-    };
   }
 
   // 確認コードの検証
