@@ -3,11 +3,26 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase環境変数が設定されていません。ローカルモードで動作します。');
+// 環境変数の検証
+const isValidSupabaseUrl = (url: string) => {
+  if (!url) return false;
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:' && parsedUrl.hostname.includes('supabase');
+  } catch {
+    return false;
+  }
+};
+
+const hasValidSupabaseConfig = isValidSupabaseUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey.length > 10;
+
+if (!hasValidSupabaseConfig) {
+  if (import.meta.env.DEV) {
+    console.warn('Supabase環境変数が設定されていないか無効です。ローカルモードで動作します。');
+  }
 }
 
-export const supabase = supabaseUrl && supabaseAnonKey 
+export const supabase = hasValidSupabaseConfig
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
