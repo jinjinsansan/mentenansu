@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users } from 'lucide-react';
 import { useSupabase } from '../hooks/useSupabase';
-import { syncService, userService } from '../lib/supabase';
+import { syncService, userService, consentService } from '../lib/supabase';
 
 const DataMigration: React.FC = () => {
   const { isConnected, currentUser, loading } = useSupabase();
@@ -10,6 +10,8 @@ const DataMigration: React.FC = () => {
   const [migrationStatus, setMigrationStatus] = useState<string>('');
   const [localDataCount, setLocalDataCount] = useState(0);
   const [supabaseDataCount, setSupabaseDataCount] = useState(0);
+  const [localConsentCount, setLocalConsentCount] = useState(0);
+  const [supabaseConsentCount, setSupabaseConsentCount] = useState(0);
 
   React.useEffect(() => {
     checkDataCounts();
@@ -24,10 +26,28 @@ const DataMigration: React.FC = () => {
     } else {
       setLocalDataCount(0);
     }
+    
+    // ローカル同意履歴数をチェック
+    const localConsents = localStorage.getItem('consent_histories');
+    if (localConsents) {
+      const consents = JSON.parse(localConsents);
+      setLocalConsentCount(consents.length);
+    } else {
+      setLocalConsentCount(0);
+    }
 
-    // Supabaseデータ数は実際のAPIで取得する必要があります
-    // 今回はデモ用に0に設定
+    // Supabaseデータ数をチェック
     setSupabaseDataCount(0);
+    setSupabaseConsentCount(0);
+    
+    if (isConnected) {
+      // 実際のSupabaseデータ数を取得
+      consentService.getAllConsentHistories().then(histories => {
+        setSupabaseConsentCount(histories.length);
+      }).catch(() => {
+        setSupabaseConsentCount(0);
+      });
+    }
   };
 
   const handleMigrateToSupabase = async () => {
@@ -56,6 +76,32 @@ const DataMigration: React.FC = () => {
     }
   };
 
+  const handleMigrateConsentsToSupabase = async () => {
+    if (!currentUser) {
+      alert('ユーザーが設定されていません。');
+      return;
+    }
+
+    setMigrating(true);
+    setMigrationStatus('同意履歴をSupabaseに移行中...');
+
+    try {
+      const success = await syncService.syncConsentHistories();
+      
+      if (success) {
+        setMigrationStatus('同意履歴の移行が完了しました！');
+        checkDataCounts();
+      } else {
+        setMigrationStatus('同意履歴の移行に失敗しました。');
+      }
+    } catch (error) {
+      console.error('同意履歴移行エラー:', error);
+      setMigrationStatus('同意履歴移行中にエラーが発生しました。');
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   const handleSyncFromSupabase = async () => {
     if (!currentUser) {
       alert('ユーザーが設定されていません。');
@@ -77,6 +123,32 @@ const DataMigration: React.FC = () => {
     } catch (error) {
       console.error('同期エラー:', error);
       setMigrationStatus('同期中にエラーが発生しました。');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSyncConsentsFromSupabase = async () => {
+    if (!currentUser) {
+      alert('ユーザーが設定されていません。');
+      return;
+    }
+
+    setSyncing(true);
+    setMigrationStatus('Supabaseから同意履歴を同期中...');
+
+    try {
+      const success = await syncService.syncConsentHistoriesToLocal();
+      
+      if (success) {
+        setMigrationStatus('同意履歴の同期が完了しました！');
+        checkDataCounts();
+      } else {
+        setMigrationStatus('同意履歴の同期に失敗しました。');
+      }
+    } catch (error) {
+      console.error('同意履歴同期エラー:', error);
+      setMigrationStatus('同意履歴同期中にエラーが発生しました。');
     } finally {
       setSyncing(false);
     }
@@ -182,11 +254,11 @@ const DataMigration: React.FC = () => {
         </div>
 
         {/* データ統計 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="bg-green-50 rounded-lg p-4 border border-green-200">
             <div className="flex items-center space-x-3 mb-2">
               <Database className="w-6 h-6 text-green-600" />
-              <h3 className="font-jp-semibold text-gray-900">ローカルデータ</h3>
+              <h3 className="font-jp-semibold text-gray-900">ローカル日記</h3>
             </div>
             <p className="text-2xl font-jp-bold text-green-600">{localDataCount}件</p>
             <p className="text-sm text-gray-600 font-jp-normal">ブラウザに保存された日記</p>
@@ -195,16 +267,35 @@ const DataMigration: React.FC = () => {
           <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <div className="flex items-center space-x-3 mb-2">
               <Database className="w-6 h-6 text-blue-600" />
-              <h3 className="font-jp-semibold text-gray-900">Supabaseデータ</h3>
+              <h3 className="font-jp-semibold text-gray-900">Supabase日記</h3>
             </div>
             <p className="text-2xl font-jp-bold text-blue-600">{supabaseDataCount}件</p>
             <p className="text-sm text-gray-600 font-jp-normal">クラウドに保存された日記</p>
+          </div>
+          
+          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <div className="flex items-center space-x-3 mb-2">
+              <Users className="w-6 h-6 text-purple-600" />
+              <h3 className="font-jp-semibold text-gray-900">ローカル同意</h3>
+            </div>
+            <p className="text-2xl font-jp-bold text-purple-600">{localConsentCount}件</p>
+            <p className="text-sm text-gray-600 font-jp-normal">ブラウザに保存された同意履歴</p>
+          </div>
+          
+          <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+            <div className="flex items-center space-x-3 mb-2">
+              <Users className="w-6 h-6 text-orange-600" />
+              <h3 className="font-jp-semibold text-gray-900">Supabase同意</h3>
+            </div>
+            <p className="text-2xl font-jp-bold text-orange-600">{supabaseConsentCount}件</p>
+            <p className="text-sm text-gray-600 font-jp-normal">クラウドに保存された同意履歴</p>
           </div>
         </div>
 
         {/* 操作ボタン */}
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <h3 className="text-lg font-jp-bold text-gray-900">日記データの移行</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <button
               onClick={handleMigrateToSupabase}
               disabled={migrating || !isConnected || !currentUser || localDataCount === 0}
@@ -215,7 +306,7 @@ const DataMigration: React.FC = () => {
               ) : (
                 <Upload className="w-5 h-5" />
               )}
-              <span>ローカル → Supabase</span>
+              <span>日記: ローカル → Supabase</span>
             </button>
 
             <button
@@ -228,7 +319,36 @@ const DataMigration: React.FC = () => {
               ) : (
                 <Download className="w-5 h-5" />
               )}
-              <span>Supabase → ローカル</span>
+              <span>日記: Supabase → ローカル</span>
+            </button>
+          </div>
+          
+          <h3 className="text-lg font-jp-bold text-gray-900">同意履歴の移行</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={handleMigrateConsentsToSupabase}
+              disabled={migrating || !isConnected || !currentUser || localConsentCount === 0}
+              className="flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-jp-medium transition-colors"
+            >
+              {migrating ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <Upload className="w-5 h-5" />
+              )}
+              <span>同意: ローカル → Supabase</span>
+            </button>
+
+            <button
+              onClick={handleSyncConsentsFromSupabase}
+              disabled={syncing || !isConnected || !currentUser}
+              className="flex items-center justify-center space-x-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-jp-medium transition-colors"
+            >
+              {syncing ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <Download className="w-5 h-5" />
+              )}
+              <span>同意: Supabase → ローカル</span>
             </button>
           </div>
 
@@ -252,6 +372,7 @@ const DataMigration: React.FC = () => {
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>データ移行は一方向のコピーです。既存データは上書きされません。</li>
                 <li>移行前に重要なデータのバックアップを取ることをお勧めします。</li>
+                <li>同意履歴は法的要件のため、削除されることはありません。</li>
                 <li>Supabase接続が必要な操作は、接続が確立されている場合のみ実行できます。</li>
                 <li>ローカルデータは常にブラウザに保存され、アプリの動作に影響しません。</li>
               </ul>
