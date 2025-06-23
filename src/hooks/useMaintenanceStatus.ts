@@ -26,9 +26,12 @@ export const useMaintenanceStatus = () => {
     error: null
   });
 
-  const checkMaintenanceStatus = async () => {
+  const checkMaintenanceStatus = async (isInitialLoad = false) => {
     try {
-      setStatus(prev => ({ ...prev, loading: true, error: null }));
+      // 初回読み込み時のみローディング状態を表示
+      if (isInitialLoad) {
+        setStatus(prev => ({ ...prev, loading: true, error: null }));
+      }
 
       // 1. 環境変数をチェック
       const envMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
@@ -47,7 +50,7 @@ export const useMaintenanceStatus = () => {
             affectedFeatures: ['日記作成', '検索機能', 'データ同期'],
             contactInfo: 'info@namisapo.com'
           },
-          loading: false,
+          loading: isInitialLoad ? false : status.loading,
           error: null
         });
         return;
@@ -68,7 +71,7 @@ export const useMaintenanceStatus = () => {
             setStatus({
               isMaintenanceMode: true,
               config: remoteConfig,
-              loading: false,
+              loading: isInitialLoad ? false : status.loading,
               error: null
             });
             return;
@@ -87,7 +90,7 @@ export const useMaintenanceStatus = () => {
             setStatus({
               isMaintenanceMode: true,
               config: parsedConfig,
-              loading: false,
+              loading: isInitialLoad ? false : status.loading,
               error: null
             });
             return;
@@ -101,7 +104,7 @@ export const useMaintenanceStatus = () => {
       setStatus({
         isMaintenanceMode: false,
         config: null,
-        loading: false,
+        loading: isInitialLoad ? false : status.loading,
         error: null
       });
 
@@ -110,7 +113,7 @@ export const useMaintenanceStatus = () => {
       setStatus({
         isMaintenanceMode: false,
         config: null,
-        loading: false,
+        loading: isInitialLoad ? false : status.loading,
         error: error instanceof Error ? error.message : '不明なエラー'
       });
     }
@@ -118,29 +121,30 @@ export const useMaintenanceStatus = () => {
 
   // 定期的にメンテナンス状態をチェック
   useEffect(() => {
-    checkMaintenanceStatus();
+    // 初回は loading 状態を表示
+    checkMaintenanceStatus(true);
 
-    // 30秒ごとにチェック
-    const interval = setInterval(checkMaintenanceStatus, 30000);
+    // 30秒ごとにバックグラウンドでチェック（loading状態は変更しない）
+    const interval = setInterval(() => checkMaintenanceStatus(false), 30000);
 
     return () => clearInterval(interval);
   }, []);
 
   // 手動でステータスを更新
   const refreshStatus = () => {
-    checkMaintenanceStatus();
+    checkMaintenanceStatus(true);
   };
 
   // 開発・テスト用：ローカルでメンテナンスモードを設定
   const setLocalMaintenanceMode = (config: MaintenanceConfig) => {
     localStorage.setItem('maintenance_config', JSON.stringify(config));
-    checkMaintenanceStatus();
+    checkMaintenanceStatus(true);
   };
 
   // 開発・テスト用：ローカルメンテナンスモードを解除
   const clearLocalMaintenanceMode = () => {
     localStorage.removeItem('maintenance_config');
-    checkMaintenanceStatus();
+    checkMaintenanceStatus(true);
   };
 
   return {
