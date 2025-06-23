@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Download, Search, Calendar, User, CheckCircle, XCircle, Filter, RotateCcw, FileText } from 'lucide-react';
+import { consentService, syncService } from '../lib/supabase';
+import { useSupabase } from '../hooks/useSupabase';
 
 interface ConsentHistory {
   id: string;
@@ -14,12 +16,15 @@ const ConsentHistoryManagement: React.FC = () => {
   const [consentHistories, setConsentHistories] = useState<ConsentHistory[]>([]);
   const [filteredHistories, setFilteredHistories] = useState<ConsentHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [consentFilter, setConsentFilter] = useState<'all' | 'consented' | 'declined'>('all');
   const [dateRange, setDateRange] = useState({
     start: '',
     end: ''
   });
+  
+  const { isConnected } = useSupabase();
 
   useEffect(() => {
     loadConsentHistories();
@@ -29,22 +34,86 @@ const ConsentHistoryManagement: React.FC = () => {
     filterHistories();
   }, [consentHistories, searchTerm, consentFilter, dateRange]);
 
-  const loadConsentHistories = () => {
+  const loadConsentHistories = async () => {
     setLoading(true);
     try {
-      // ローカルストレージから同意履歴を読み込み
-      const savedHistories = localStorage.getItem('consent_histories');
-      if (savedHistories) {
-        const parsedHistories = JSON.parse(savedHistories);
-        setConsentHistories(parsedHistories);
+      if (isConnected) {
+        // Supabaseから読み込み
+        const supabaseHistories = await consentService.getAllConsentHistories();
+        if (supabaseHistories.length > 0) {
+          setConsentHistories(supabaseHistories);
+          // ローカルストレージにも保存
+          localStorage.setItem('consent_histories', JSON.stringify(supabaseHistories));
+        } else {
+          // Supabaseにデータがない場合はローカルから読み込み
+          loadLocalHistories();
+        }
       } else {
-        setConsentHistories([]);
+        // ローカルストレージから読み込み
+        loadLocalHistories();
       }
     } catch (error) {
       console.error('同意履歴読み込みエラー:', error);
-      setConsentHistories([]);
+      // エラーの場合はローカルから読み込み
+      loadLocalHistories();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLocalHistories = () => {
+    const savedHistories = localStorage.getItem('consent_histories');
+    if (savedHistories) {
+      const parsedHistories = JSON.parse(savedHistories);
+      setConsentHistories(parsedHistories);
+    } else {
+      setConsentHistories([]);
+    }
+  };
+
+  const handleSyncToSupabase = async () => {
+    if (!isConnected) {
+      alert('Supabaseに接続されていません。');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const success = await syncService.syncConsentHistories();
+      if (success) {
+        alert('同意履歴をSupabaseに同期しました！');
+        await loadConsentHistories(); // 再読み込み
+      } else {
+        alert('同期に失敗しました。');
+      }
+    } catch (error) {
+      console.error('同期エラー:', error);
+      alert('同期中にエラーが発生しました。');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSyncFromSupabase = async () => {
+    if (!isConnected) {
+      alert('Supabaseに接続されていません。');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const success = await syncService.syncConsentHistoriesToLocal();
+      if (success) {
+        alert('Supabaseから同意履歴を同期しました！');
+        await loadConsentHistories(); // 再読み込み
+      } else {
+        alert('同期に失敗しました。');
+      }
+    } catch (error) {
+      console.error('同期エラー:', error);
+      alert('同期中にエラーが発生しました。');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -167,16 +236,48 @@ const ConsentHistoryManagement: React.FC = () => {
           <h2 className="text-2xl font-jp-bold text-gray-900">同意履歴管理</h2>
           <p className="text-gray-600 font-jp-normal text-sm mt-1">
             プライバシーポリシーの同意履歴を管理します
+            {isConnected && <span className="text-green-600 ml-2">• Supabase接続中</span>}
+            {!isConnected && <span className="text-yellow-600 ml-2">• ローカルモード</span>}
           </p>
         </div>
-        <button
-          onClick={exportToCSV}
-          disabled={filteredHistories.length === 0}
-          className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          <span>CSV出力</span>
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {isConnected && (
+            <>
+              <button
+                onClick={handleSyncToSupabase}
+                disabled={syncing || consentHistories.length === 0}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
+              >
+                {syncing ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Shield className="w-4 h-4" />
+                )}
+                <span>Supabaseに同期</span>
+              </button>
+              <button
+                onClick={handleSyncFromSupabase}
+                disabled={syncing}
+                className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
+              >
+                {syncing ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span>Supabaseから同期</span>
+              </button>
+            </>
+          )}
+          <button
+            onClick={exportToCSV}
+            disabled={filteredHistories.length === 0}
+            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            <span>CSV出力</span>
+          </button>
+        </div>
       </div>
 
       {/* フィルター */}
