@@ -26,10 +26,10 @@ export const useMaintenanceStatus = () => {
     error: null
   });
 
-  const checkMaintenanceStatus = async (isInitialLoad = false) => {
+  const checkMaintenanceStatus = async (showLoading = false) => {
     try {
-      // 初回読み込み時のみローディング状態を表示
-      if (isInitialLoad) {
+      // showLoadingがtrueの場合のみローディング状態を表示
+      if (showLoading) {
         setStatus(prev => ({ ...prev, loading: true, error: null }));
       }
 
@@ -39,7 +39,7 @@ export const useMaintenanceStatus = () => {
       const envMaintenanceEndTime = import.meta.env.VITE_MAINTENANCE_END_TIME;
 
       if (envMaintenanceMode) {
-        setStatus({
+        setStatus(prev => ({
           isMaintenanceMode: true,
           config: {
             isEnabled: true,
@@ -50,9 +50,9 @@ export const useMaintenanceStatus = () => {
             affectedFeatures: ['日記作成', '検索機能', 'データ同期'],
             contactInfo: 'info@namisapo.com'
           },
-          loading: isInitialLoad ? false : status.loading,
+          loading: false,
           error: null
-        });
+        }));
         return;
       }
 
@@ -68,12 +68,12 @@ export const useMaintenanceStatus = () => {
         if (response.ok) {
           const remoteConfig = await response.json();
           if (remoteConfig.isEnabled) {
-            setStatus({
+            setStatus(prev => ({
               isMaintenanceMode: true,
               config: remoteConfig,
-              loading: isInitialLoad ? false : status.loading,
+              loading: false,
               error: null
-            });
+            }));
             return;
           }
         }
@@ -87,12 +87,12 @@ export const useMaintenanceStatus = () => {
         try {
           const parsedConfig = JSON.parse(localConfig);
           if (parsedConfig.isEnabled) {
-            setStatus({
+            setStatus(prev => ({
               isMaintenanceMode: true,
               config: parsedConfig,
-              loading: isInitialLoad ? false : status.loading,
+              loading: false,
               error: null
-            });
+            }));
             return;
           }
         } catch (parseError) {
@@ -101,21 +101,21 @@ export const useMaintenanceStatus = () => {
       }
 
       // 4. メンテナンスモードではない
-      setStatus({
+      setStatus(prev => ({
         isMaintenanceMode: false,
         config: null,
-        loading: isInitialLoad ? false : status.loading,
+        loading: false,
         error: null
-      });
+      }));
 
     } catch (error) {
       console.error('メンテナンス状態の確認に失敗:', error);
-      setStatus({
+      setStatus(prev => ({
         isMaintenanceMode: false,
         config: null,
-        loading: isInitialLoad ? false : status.loading,
+        loading: false,
         error: error instanceof Error ? error.message : '不明なエラー'
-      });
+      }));
     }
   };
 
