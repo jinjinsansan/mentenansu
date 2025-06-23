@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import LineAuthGuard from '../components/LineAuthGuard';
+import { checkAuthStatus } from '../lib/lineAuth';
 
 const DiaryPage: React.FC = () => {
+  const [showLineAuth, setShowLineAuth] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     event: '',
@@ -99,6 +103,23 @@ const DiaryPage: React.FC = () => {
       return;
     }
 
+    // LINE認証チェック
+    const { isAuthenticated } = checkAuthStatus();
+    if (!isAuthenticated) {
+      // 認証されていない場合、フォームデータを保存してLINE認証を促す
+      setPendingFormData({
+        ...formData,
+        selfEsteemScore: formData.emotion === '無価値感' ? worthlessnessScores.todaySelfEsteem : formData.selfEsteemScore,
+        worthlessnessScore: formData.emotion === '無価値感' ? worthlessnessScores.todayWorthlessness : formData.worthlessnessScore
+      });
+      setShowLineAuth(true);
+      return;
+    }
+
+    await saveEntry();
+  };
+
+  const saveEntry = async () => {
     setSaving(true);
 
     try {
@@ -175,6 +196,27 @@ const DiaryPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleLineAuthComplete = async () => {
+    setShowLineAuth(false);
+    
+    if (pendingFormData) {
+      // 認証完了後、保存していたデータで日記を保存
+      const tempFormData = formData;
+      setFormData(pendingFormData);
+      
+      // 少し待ってから保存実行
+      setTimeout(async () => {
+        await saveEntry();
+        setPendingFormData(null);
+      }, 500);
+    }
+  };
+
+  const handleLineAuthCancel = () => {
+    setShowLineAuth(false);
+    setPendingFormData(null);
   };
 
   const handleShare = () => {
@@ -271,6 +313,16 @@ const DiaryPage: React.FC = () => {
   };
 
   return (
+    <>
+      {showLineAuth && (
+        <LineAuthGuard 
+          showLineLogin={true}
+          onCloseLineLogin={handleLineAuthCancel}
+        >
+          <div></div>
+        </LineAuthGuard>
+      )}
+      
     <div className="w-full max-w-2xl mx-auto space-y-6 px-2">
       {/* 今日の出来事セクション */}
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -614,6 +666,7 @@ const DiaryPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
