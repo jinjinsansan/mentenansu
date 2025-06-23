@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Users, Database, CheckCircle, AlertTriangle } from 'lucide-react';
 import HybridAuthFlow from '../components/HybridAuthFlow';
 import { hybridAuth, type UserProfile } from '../lib/hybridAuth';
+import HybridAuthSettings from '../components/HybridAuthSettings';
 
 const HybridAuthPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthFlow, setShowAuthFlow] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
@@ -91,6 +93,36 @@ const HybridAuthPage: React.FC = () => {
     );
   }
 
+  if (showSettings) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-jp-bold text-gray-900">認証設定</h1>
+                  <p className="text-gray-600 font-jp-normal">セキュリティ設定を管理します</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-jp-medium transition-colors"
+              >
+                戻る
+              </button>
+            </div>
+          </div>
+          
+          <HybridAuthSettings />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -106,12 +138,20 @@ const HybridAuthPage: React.FC = () => {
                 <p className="text-gray-600 font-jp-normal">セキュアな認証システムでログイン中</p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
-            >
-              ログアウト
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
+              >
+                設定
+              </button>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
+              >
+                ログアウト
+              </button>
+            </div>
           </div>
         </div>
 

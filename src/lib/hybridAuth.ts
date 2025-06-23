@@ -3,9 +3,7 @@
 // 第二段階：メールアドレス認証
 // 第三段階：バックアップ認証（合言葉）
 
-import { emailService } from './emailService';
-
-import { emailService } from './emailService';
+import { emailService, emailRegex } from './emailService';
 
 interface DeviceFingerprint {
   id: string;
@@ -127,13 +125,16 @@ class HybridAuthSystem {
     });
 
     // EmailJSを使用してメール送信
-    // EmailJSを使用してメール送信
     try {
       const result = await emailService.sendVerificationEmail(email, code);
       return result;
     } catch (error) {
       console.error('メール送信エラー:', error);
-      }
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'メール送信に失敗しました'
+      };
+    }
   }
 
   // 確認コードの検証
