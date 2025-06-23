@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, User, LogOut } from 'lucide-react';
+import { Shield, User, LogOut, X } from 'lucide-react';
 import { checkAuthStatus, logoutFromLine, type LineUser } from '../lib/lineAuth';
 import LineLogin from '../pages/LineLogin';
 
 interface LineAuthGuardProps {
   children: React.ReactNode;
+  showLineLogin?: boolean;
+  onCloseLineLogin?: () => void;
 }
 
-const LineAuthGuard: React.FC<LineAuthGuardProps> = ({ children }) => {
+const LineAuthGuard: React.FC<LineAuthGuardProps> = ({ children, showLineLogin = false, onCloseLineLogin }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<LineUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [showLogin, setShowLogin] = useState<boolean>(false);
+  const [internalShowLogin, setInternalShowLogin] = useState<boolean>(false);
 
   useEffect(() => {
     checkAuth();
@@ -25,6 +27,13 @@ const LineAuthGuard: React.FC<LineAuthGuardProps> = ({ children }) => {
     setLoading(false);
   };
 
+  // 外部からのログイン表示制御
+  useEffect(() => {
+    if (showLineLogin) {
+      setInternalShowLogin(true);
+    }
+  }, [showLineLogin]);
+
   const handleLogout = () => {
     if (window.confirm('ログアウトしますか？')) {
       logoutFromLine();
@@ -34,11 +43,14 @@ const LineAuthGuard: React.FC<LineAuthGuardProps> = ({ children }) => {
   };
 
   const handleShowLogin = () => {
-    setShowLogin(true);
+    setInternalShowLogin(true);
   };
 
   const handleBackFromLogin = () => {
-    setShowLogin(false);
+    setInternalShowLogin(false);
+    if (onCloseLineLogin) {
+      onCloseLineLogin();
+    }
     checkAuth(); // ログイン状態を再確認
   };
 
@@ -53,7 +65,7 @@ const LineAuthGuard: React.FC<LineAuthGuardProps> = ({ children }) => {
     );
   }
 
-  if (showLogin) {
+  if (internalShowLogin) {
     return <LineLogin onBack={handleBackFromLogin} />;
   }
 
@@ -68,9 +80,14 @@ const LineAuthGuard: React.FC<LineAuthGuardProps> = ({ children }) => {
             <h1 className="text-2xl font-jp-bold text-gray-900 mb-2">
               ログインが必要です
             </h1>
-            <p className="text-gray-600 font-jp-normal">
-              安全にご利用いただくため、LINEアカウントでのログインが必要です
+            <p className="text-gray-600 font-jp-normal mb-4">
+              より安全にご利用いただくため、LINEアカウントでのログインをお勧めします
             </p>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
+              <p className="text-blue-800 font-jp-normal text-sm">
+                ※ LINE認証なしでも基本機能はご利用いただけますが、データの安全性向上のためLINE認証をお勧めします。
+              </p>
+            </div>
           </div>
 
           <div className="bg-blue-50 rounded-lg p-6 mb-6 border border-blue-200">
@@ -84,14 +101,31 @@ const LineAuthGuard: React.FC<LineAuthGuardProps> = ({ children }) => {
 
           <button
             onClick={handleShowLogin}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-jp-bold transition-colors shadow-md hover:shadow-lg mb-4"
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-jp-bold transition-colors shadow-md hover:shadow-lg mb-4"
           >
             LINEでログイン
           </button>
 
+          <button
+            onClick={() => {
+              // LINE認証をスキップして通常のアプリを使用
+              setIsAuthenticated(true);
+              if (onCloseLineLogin) {
+                onCloseLineLogin();
+              }
+            }}
+            className="w-full flex items-center justify-center space-x-2 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-jp-medium transition-colors mb-4"
+          >
+            <X className="w-4 h-4" />
+            <span>LINE認証をスキップ</span>
+          </button>
+
           <div className="text-center">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 mb-2">
               ログインすることで、プライバシーポリシーに同意したものとみなします
+            </p>
+            <p className="text-xs text-gray-400">
+              LINE認証をスキップした場合も、基本的なプライバシー保護は適用されます
             </p>
           </div>
         </div>

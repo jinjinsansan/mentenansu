@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Search, TrendingUp, Plus, Edit3, Trash2, ChevronLeft, ChevronRight, Menu, X, BookOpen, Play, ArrowRight, Home, Heart, Share2, Shield, Settings, MessageCircle, Database } from 'lucide-react';
+import { Calendar, Search, TrendingUp, Plus, Edit3, Trash2, ChevronLeft, ChevronRight, Menu, X, BookOpen, Play, ArrowRight, Home, Heart, Share2, Shield, Settings, MessageCircle, Database, LogIn } from 'lucide-react';
 import PrivacyConsent from './components/PrivacyConsent';
 import MaintenanceMode from './components/MaintenanceMode';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
-// import LineAuthGuard from './components/LineAuthGuard';
-// import AuthCallback from './pages/AuthCallback';
+import LineAuthGuard from './components/LineAuthGuard';
+import AuthCallback from './pages/AuthCallback';
 import AdminPanel from './components/AdminPanel';
 import DataMigration from './components/DataMigration';
 import DiaryPage from './pages/DiaryPage';
@@ -17,9 +17,10 @@ import Support from './pages/Support';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
 import { useAutoSync } from './hooks/useAutoSync';
+import { checkAuthStatus } from './lib/lineAuth';
 
 // URLパスをチェックしてコールバックページかどうか判定
-// const isAuthCallback = window.location.pathname === '/auth/callback';
+const isAuthCallback = window.location.pathname === '/auth/callback';
 
 interface JournalEntry {
   id: string;
@@ -54,6 +55,8 @@ const App: React.FC = () => {
   const [currentCounselor, setCurrentCounselor] = useState<string | null>(null);
 
   const [dataLoading, setDataLoading] = useState(true);
+  const [showLineLogin, setShowLineLogin] = useState(false);
+  const [lineAuthEnabled, setLineAuthEnabled] = useState(false);
   const { isMaintenanceMode, config: maintenanceConfig, loading: maintenanceLoading } = useMaintenanceStatus();
   const { isConnected, currentUser, initializeUser } = useSupabase();
   
@@ -78,6 +81,14 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // LINE認証が有効かチェック
+    const hasLineConfig = !!(
+      import.meta.env.VITE_LINE_CHANNEL_ID && 
+      import.meta.env.VITE_LINE_CHANNEL_SECRET && 
+      import.meta.env.VITE_LINE_REDIRECT_URI
+    );
+    setLineAuthEnabled(hasLineConfig);
+    
     const consentGiven = localStorage.getItem('privacyConsentGiven');
     const savedUsername = localStorage.getItem('line-username');
     if (consentGiven === 'true') {
@@ -89,6 +100,12 @@ const App: React.FC = () => {
       }
     }
   }, []);
+
+  // LINE認証状態をチェック
+  const checkLineAuthStatus = () => {
+    if (!lineAuthEnabled) return { isAuthenticated: true, user: null }; // LINE認証無効時は認証済みとして扱う
+    return checkAuthStatus();
+  };
 
   // テストデータ生成関数
   const generateTestData = () => {
@@ -1010,6 +1027,12 @@ const App: React.FC = () => {
   }
 
   return (
+    <>
+      {/* 認証コールバックページの場合は特別処理 */}
+      {isAuthCallback ? (
+        <AuthCallback />
+      ) : lineAuthEnabled ? (
+        <LineAuthGuard showLineLogin={showLineLogin} onCloseLineLogin={() => setShowLineLogin(false)}>
     <div className="min-h-screen bg-gray-50">
       {!showPrivacyConsent && currentPage !== 'home' && (
         <>
@@ -1064,11 +1087,22 @@ const App: React.FC = () => {
                   ))}
                   {!isAdmin && (
                     <button
+                      onClick={() => setShowLineLogin(true)}
+                      className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-jp-medium text-blue-600 hover:text-blue-700 transition-colors"
+                      title="LINE認証"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span>LINE認証</span>
+                    </button>
+                  )}
+                  {!isAdmin && (
+                    <button
                       onClick={handleShowCounselorLogin}
-                      className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-jp-medium text-gray-400 hover:text-gray-600 transition-colors"
+                      className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-jp-medium text-gray-600 hover:text-gray-700 transition-colors"
                       title="カウンセラーログイン"
                     >
                       <Settings className="w-4 h-4" />
+                      <span>管理</span>
                     </button>
                   )}
                   {isAdmin && currentCounselor && (
@@ -1160,13 +1194,26 @@ const App: React.FC = () => {
                   {!isAdmin && (
                     <button
                       onClick={() => {
+                        setShowLineLogin(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center space-x-3 w-full px-3 py-2 rounded-md text-base font-jp-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                    >
+                      <LogIn className="w-5 h-5" />
+                      <span>LINE認証</span>
+                    </button>
+                  )}
+                  
+                  {!isAdmin && (
+                    <button
+                      onClick={() => {
                         handleShowCounselorLogin();
                         setIsMobileMenuOpen(false);
                       }}
                       className="flex items-center space-x-3 w-full px-3 py-2 rounded-md text-base font-jp-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                     >
                       <Settings className="w-5 h-5" />
-                      <span>カウンセラーログイン</span>
+                      <span>管理者ログイン</span>
                     </button>
                   )}
                   {isAdmin && currentCounselor && (
@@ -1228,6 +1275,229 @@ const App: React.FC = () => {
       {/* カウンセラーログインモーダル */}
       {renderCounselorLoginModal()}
     </div>
+        </LineAuthGuard>
+      ) : (
+        <div className="min-h-screen bg-gray-50">
+          {!showPrivacyConsent && currentPage !== 'home' && (
+            <>
+              {/* ヘッダー */}
+              <header className="bg-white shadow-sm border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="flex justify-between items-center h-16">
+                    <div className="flex items-center space-x-4">
+                      <button
+                        onClick={() => setCurrentPage('home')}
+                        className="flex items-center space-x-2 text-gray-900 hover:text-blue-600 transition-colors"
+                      >
+                        <Heart className="w-6 h-6 text-pink-500" />
+                        <span className="font-jp-bold text-lg">かんじょうにっき</span>
+                      </button>
+                      
+                      {/* ユーザー名表示 */}
+                      {lineUsername && (
+                        <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-blue-50 rounded-full border border-blue-200">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-blue-700 font-jp-medium text-sm">
+                            {lineUsername}さん
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* デスクトップナビゲーション */}
+                    <nav className="hidden space-x-8">
+                      {[
+                        { key: 'how-to', label: '使い方', icon: BookOpen },
+                        { key: 'diary', label: '日記', icon: Plus },
+                        { key: 'search', label: '検索', icon: Search },
+                        { key: 'worthlessness-trend', label: '推移', icon: TrendingUp },
+                        ...(isAdmin ? [
+                          { key: 'admin', label: '管理', icon: Settings },
+                          { key: 'data-migration', label: 'データ管理', icon: Database }
+                        ] : [])
+                      ].map(({ key, label, icon: Icon }) => (
+                        <button
+                          key={key}
+                          onClick={() => setCurrentPage(key)}
+                          className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-jp-medium transition-colors ${
+                            currentPage === key
+                              ? 'text-blue-600 bg-blue-50'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{label}</span>
+                        </button>
+                      ))}
+                      {!isAdmin && (
+                        <button
+                          onClick={handleShowCounselorLogin}
+                          className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-jp-medium text-gray-600 hover:text-gray-700 transition-colors"
+                          title="カウンセラーログイン"
+                        >
+                          <Settings className="w-4 h-4" />
+                          <span>管理</span>
+                        </button>
+                      )}
+                      {isAdmin && currentCounselor && (
+                        <div className="flex items-center space-x-4">
+                          <div className="text-sm text-gray-600 font-jp-normal">
+                            {currentCounselor}
+                          </div>
+                          <button
+                            onClick={handleCounselorLogout}
+                            className="text-sm text-gray-500 hover:text-gray-700 font-jp-normal"
+                          >
+                            ログアウト
+                          </button>
+                        </div>
+                      )}
+                    </nav>
+
+                    {/* モバイルメニューボタン */}
+                    <div className="flex items-center space-x-3">
+                      {/* モバイル用ユーザー名表示 */}
+                      {lineUsername && (
+                        <div className="md:hidden flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-full border border-blue-200">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                          <span className="text-blue-700 font-jp-medium text-xs">
+                            {lineUsername}さん
+                          </span>
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      >
+                        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* モバイルメニュー */}
+                  {isMobileMenuOpen && (
+                    <div className="border-t border-gray-200 bg-white">
+                      <div className="px-2 pt-2 pb-3 space-y-1">
+                        {[
+                          { key: 'home', label: 'TOP', icon: Home },
+                          { key: 'how-to', label: '使い方', icon: BookOpen },
+                          { key: 'first-steps', label: '最初にやること', icon: Play },
+                          { key: 'next-steps', label: '次にやること', icon: ArrowRight },
+                          { key: 'emotion-types', label: '感情の種類', icon: Heart },
+                          { key: 'support', label: 'サポートについて', icon: Shield },
+                          { key: 'privacy-policy', label: '同意文', icon: Shield },
+                          { key: 'diary', label: '日記', icon: Plus },
+                          { key: 'search', label: '日記検索', icon: Search },
+                          { key: 'worthlessness-trend', label: '無価値感推移', icon: TrendingUp },
+                          ...(isAdmin ? [
+                            { key: 'admin', label: '管理画面', icon: Settings },
+                            { key: 'data-migration', label: 'データ管理', icon: Database }
+                          ] : [])
+                        ].map(({ key, label, icon: Icon }) => (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              setCurrentPage(key);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center space-x-3 w-full px-3 py-2 rounded-md text-base font-jp-medium transition-colors ${
+                              currentPage === key
+                                ? 'text-blue-600 bg-blue-50'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            }`}
+                          >
+                            <Icon className="w-5 h-5" />
+                            <span>{label}</span>
+                          </button>
+                        ))}
+                        
+                        {/* お問い合わせ */}
+                        <a
+                          href="https://lin.ee/VXZVGnx"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center space-x-3 w-full px-3 py-2 rounded-md text-base font-jp-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                        >
+                          <MessageCircle className="w-5 h-5" />
+                          <span>お問い合わせ</span>
+                        </a>
+                        
+                        {!isAdmin && (
+                          <button
+                            onClick={() => {
+                              handleShowCounselorLogin();
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="flex items-center space-x-3 w-full px-3 py-2 rounded-md text-base font-jp-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                          >
+                            <Settings className="w-5 h-5" />
+                            <span>管理者ログイン</span>
+                          </button>
+                        )}
+                        {isAdmin && currentCounselor && (
+                          <div className="px-3 py-2 border-t border-gray-200">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-jp-medium text-gray-700">
+                                {currentCounselor}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  handleCounselorLogout();
+                                  setIsMobileMenuOpen(false);
+                                }}
+                                className="text-sm text-gray-500 hover:text-gray-700 font-jp-normal"
+                              >
+                                ログアウト
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </header>
+
+                {/* メインコンテンツ */}
+                <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                  {/* Supabase接続状態表示 */}
+                  {isAdmin && (
+                    <div className="mb-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-jp-medium ${
+                          isConnected 
+                            ? 'bg-green-100 text-green-800 border border-green-200' 
+                            : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                          <span>Supabase: {isConnected ? '接続済み' : 'ローカルモード'}</span>
+                          {currentUser && (
+                            <span className="text-xs">({currentUser.line_username})</span>
+                          )}
+                        </div>
+                        {currentCounselor && (
+                          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-jp-medium bg-blue-100 text-blue-800 border border-blue-200">
+                            <Shield className="w-3 h-3" />
+                            <span>{currentCounselor}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {renderContent()}
+                </main>
+              </>
+            )}
+
+            {(showPrivacyConsent || currentPage === 'home') && renderContent()}
+            
+            {/* カウンセラーログインモーダル */}
+            {renderCounselorLoginModal()}
+          </div>
+        )}
+      )}
+    </>
   );
 };
 
