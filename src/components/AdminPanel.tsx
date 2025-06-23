@@ -3,8 +3,6 @@ import { Search, Filter, Eye, X, User, Calendar, AlertTriangle, UserCheck, Edit3
 import AdvancedSearchFilter from './AdvancedSearchFilter';
 import CounselorManagement from './CounselorManagement';
 import MaintenanceController from './MaintenanceController';
-import DataMigration from './DataMigration';
-import ConsentHistoryManagement from './ConsentHistoryManagement';
 import { diaryService } from '../lib/supabase';
 
 interface JournalEntry {
@@ -40,7 +38,7 @@ const AdminPanel: React.FC = () => {
   const [assigningEntry, setAssigningEntry] = useState<JournalEntry | null>(null);
   const [editingMemo, setEditingMemo] = useState<string | null>(null);
   const [memoText, setMemoText] = useState('');
-  const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'consent' | 'data-migration' | 'maintenance'>('diary');
+  const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'maintenance'>('diary');
 
   const emotions = [
     '恐怖', '悲しみ', '怒り', '悔しい', '無価値感', '罪悪感', '寂しさ', '恥ずかしさ'
@@ -474,8 +472,6 @@ const AdminPanel: React.FC = () => {
               { key: 'diary', label: '日記管理', shortLabel: '日記', icon: MessageSquare },
               { key: 'search', label: '高度な検索', shortLabel: '検索', icon: Search },
               { key: 'counselor', label: 'カウンセラー', shortLabel: 'カウンセラー', icon: User },
-              { key: 'consent', label: '同意履歴', shortLabel: '同意', icon: Shield },
-              { key: 'data-migration', label: 'データ管理', shortLabel: 'データ', icon: Database },
               { key: 'maintenance', label: 'メンテナンス', shortLabel: 'メンテ', icon: AlertTriangle }
             ].map(({ key, label, shortLabel, icon: Icon }) => (
               <button
@@ -936,8 +932,6 @@ const AdminPanel: React.FC = () => {
         )}
         {activeTab === 'search' && <AdvancedSearchFilter entries={entries} onFilteredResults={setFilteredEntries} onViewEntry={setSelectedEntry} />}
         {activeTab === 'counselor' && <CounselorManagement />}
-        {activeTab === 'consent' && <ConsentHistoryManagement />}
-        {activeTab === 'data-migration' && <DataMigration />}
         {activeTab === 'maintenance' && <MaintenanceController />}
       </div>
       {/* 詳細モーダル */}

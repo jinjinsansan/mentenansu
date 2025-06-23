@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Search, TrendingUp, Plus, Edit3, Trash2, ChevronLeft, ChevronRight, Menu, X, BookOpen, Play, ArrowRight, Home, Heart, Share2, Shield, Settings, MessageCircle } from 'lucide-react';
+import { Database } from 'lucide-react';
 import PrivacyConsent from './components/PrivacyConsent';
 import MaintenanceMode from './components/MaintenanceMode';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
-import LineAuthGuard from './components/LineAuthGuard';
-import AuthCallback from './pages/AuthCallback';
+// import LineAuthGuard from './components/LineAuthGuard';
+// import AuthCallback from './pages/AuthCallback';
 import AdminPanel from './components/AdminPanel';
 import DataMigration from './components/DataMigration';
 import DiaryPage from './pages/DiaryPage';
@@ -18,7 +19,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
 
 // URLパスをチェックしてコールバックページかどうか判定
-const isAuthCallback = window.location.pathname === '/auth/callback';
+// const isAuthCallback = window.location.pathname === '/auth/callback';
 
 interface JournalEntry {
   id: string;
@@ -1003,12 +1004,12 @@ const App: React.FC = () => {
   }
 
   return (
-    <>
-      {/* 認証コールバックページの場合は特別処理 */}
-      {isAuthCallback ? (
-        <AuthCallback />
-      ) : (
-        <LineAuthGuard>
+    // <>
+    //   {/* 認証コールバックページの場合は特別処理 */}
+    //   {isAuthCallback ? (
+    //     <AuthCallback />
+    //   ) : (
+    //     <LineAuthGuard>
     <div className="min-h-screen bg-gray-50">
       {!showPrivacyConsent && currentPage !== 'home' && (
         <>
@@ -1044,7 +1045,8 @@ const App: React.FC = () => {
                     { key: 'search', label: '検索', icon: Search },
                     { key: 'worthlessness-trend', label: '推移', icon: TrendingUp },
                     ...(isAdmin ? [{ key: 'admin', label: '管理', icon: Settings }] : [])
-                  ].map(({ key, label, icon: Icon }) => (
+                      { key: 'admin', label: '管理', icon: Settings },
+                      { key: 'data-migration', label: 'データ管理', icon: Database }
                     <button
                       key={key}
                       onClick={() => setCurrentPage(key)}
@@ -1223,9 +1225,9 @@ const App: React.FC = () => {
       {/* カウンセラーログインモーダル */}
       {renderCounselorLoginModal()}
     </div>
-        </LineAuthGuard>
-      )}
-    </>
+    //     </LineAuthGuard>
+    //   )}
+    // </>
   );
 };
 
