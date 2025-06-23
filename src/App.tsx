@@ -1107,8 +1107,7 @@ const App: React.FC = () => {
                     { key: 'search', label: '日記検索', icon: Search },
                     { key: 'worthlessness-trend', label: '無価値感推移', icon: TrendingUp },
                     ...(isAdmin ? [
-                      { key: 'admin', label: '管理画面', icon: Settings },
-                      { key: 'data-migration', label: 'データ管理', icon: Settings }
+                      { key: 'admin', label: '管理画面', icon: Settings }
                     ] : [])
                   ].map(({ key, label, icon: Icon }) => (
                     <button
