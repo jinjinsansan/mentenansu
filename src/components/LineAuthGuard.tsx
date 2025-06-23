@@ -108,8 +108,7 @@ const LineAuthGuard: React.FC<LineAuthGuardProps> = ({ children, showLineLogin =
 
           <button
             onClick={() => {
-              // LINE認証をスキップして通常のアプリを使用
-              setIsAuthenticated(true);
+              // LINE認証をスキップして元の画面に戻る
               if (onCloseLineLogin) {
                 onCloseLineLogin();
               }

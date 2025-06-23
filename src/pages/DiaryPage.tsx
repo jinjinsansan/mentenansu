@@ -203,14 +203,76 @@ const DiaryPage: React.FC = () => {
     
     if (pendingFormData) {
       // 認証完了後、保存していたデータで日記を保存
-      const tempFormData = formData;
-      setFormData(pendingFormData);
+      try {
+        setSaving(true);
+        
+        // 最初にやることページで保存されたスコアを取得
+        const savedInitialScores = localStorage.getItem('initialScores');
+        let finalFormData = { ...pendingFormData };
+        
+        // 一番最初の日記で無価値感を選んだ場合、保存されたスコアを使用
+        if (pendingFormData.emotion === '無価値感' && savedInitialScores) {
+          const existingEntries = localStorage.getItem('journalEntries');
+          const entries = existingEntries ? JSON.parse(existingEntries) : [];
+          
+          // 無価値感の日記が初回の場合
+          const worthlessnessEntries = entries.filter((entry: any) => entry.emotion === '無価値感');
+          
+          if (worthlessnessEntries.length === 0) {
+            // 初回の無価値感日記の場合、保存されたスコアを使用
+            const initialScores = JSON.parse(savedInitialScores);
+            if (initialScores.selfEsteemScore && initialScores.worthlessnessScore) {
+              finalFormData = {
+                ...pendingFormData,
+                selfEsteemScore: parseInt(initialScores.selfEsteemScore),
+                worthlessnessScore: parseInt(initialScores.worthlessnessScore)
+              };
+            }
+          }
+        }
+        
+        // ローカルストレージに保存
+        const existingEntries = localStorage.getItem('journalEntries');
+        const entries = existingEntries ? JSON.parse(existingEntries) : [];
+        
+        const newEntry = {
+          id: Date.now().toString(),
+          date: finalFormData.date,
+          emotion: finalFormData.emotion,
+          event: finalFormData.event,
+          realization: finalFormData.realization,
+          selfEsteemScore: finalFormData.selfEsteemScore,
+          worthlessnessScore: finalFormData.worthlessnessScore
+        };
+        
+        entries.unshift(newEntry);
+        localStorage.setItem('journalEntries', JSON.stringify(entries));
+        
+        alert('日記を保存しました！');
       
-      // 少し待ってから保存実行
-      setTimeout(async () => {
-        await saveEntry();
+        // フォームをリセット
+        setFormData({
+          date: new Date().toISOString().split('T')[0],
+          event: '',
+          emotion: '',
+          selfEsteemScore: 50,
+          worthlessnessScore: 50,
+          realization: ''
+        });
+        setWorthlessnessScores({
+          yesterdaySelfEsteem: 50,
+          yesterdayWorthlessness: 50,
+          todaySelfEsteem: 50,
+          todayWorthlessness: 50
+        });
+        
+      } catch (error) {
+        console.error('保存エラー:', error);
+        alert('保存に失敗しました。もう一度お試しください。');
+      } finally {
+        setSaving(false);
         setPendingFormData(null);
-      }, 500);
+      }
     }
   };
 
