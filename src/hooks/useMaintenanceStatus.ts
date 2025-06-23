@@ -58,7 +58,108 @@ export const useMaintenanceStatus = () => {
 
       // 2. リモート設定をチェック（Supabase Functions経由）
       try {
-        const response = await fetch('/api/maintenance-status', {
+        // 開発環境では /api/maintenance-status は存在しないのでスキップ
+        if (import.meta.env.PROD) {
+          const response = await fetch('/api/maintenance-status', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const remoteConfig = await response.json();
+            if (remoteConfig.isEnabled) {
+              setStatus(prev => ({
+                isMaintenanceMode: true,
+                config: remoteConfig,
+                loading: false,
+                error: null
+              }));
+              return;
+            }
+          }
+        }
+      } catch (remoteError) {
+        // 本番環境でのみエラーログを出力
+        if (import.meta.env.PROD) {
+          console.log('リモート設定の取得に失敗しました:', remoteError);
+        }
+      }
+
+      // 3. ローカル設定をチェック（開発・テスト用）
+      const localConfig = localStorage.getItem('maintenance_config');
+      if (localConfig) {
+        try {
+          const parsedConfig = JSON.parse(localConfig);
+          if (parsedConfig.isEnabled) {
+            setStatus(prev => ({
+              isMaintenanceMode: true,
+              config: parsedConfig,
+              loading: false,
+              error: null
+            }));
+            return;
+          }
+        } catch (parseError) {
+          console.error('ローカル設定の解析に失敗:', parseError);
+        }
+      }
+
+      // 4. メンテナンスモードではない
+      setStatus(prev => ({
+        isMaintenanceMode: false,
+        config: null,
+        loading: false,
+        error: null
+      }));
+
+    } catch (error) {
+      console.error('メンテナンス状態の確認に失敗:', error);
+      setStatus(prev => ({
+        isMaintenanceMode: false,
+        config: null,
+        loading: false,
+        error: error instanceof Error ? error.message : '不明なエラー'
+      }));
+    }
+  };
+
+  // 定期的にメンテナンス状態をチェック
+  useEffect(() => {
+    // 初回は loading 状態を表示
+    checkMaintenanceStatus(true);
+
+    // 30秒ごとにバックグラウンドでチェック（loading状態は変更しない）
+    const interval = setInterval(() => checkMaintenanceStatus(false), 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 手動でステータスを更新
+  const refreshStatus = () => {
+    checkMaintenanceStatus(true);
+  };
+
+  // 開発・テスト用：ローカルでメンテナンスモードを設定
+  const setLocalMaintenanceMode = (config: MaintenanceConfig) => {
+    localStorage.setItem('maintenance_config', JSON.stringify(config));
+    checkMaintenanceStatus(true);
+  };
+
+  // 開発・テスト用：ローカルメンテナンスモードを解除
+  const clearLocalMaintenanceMode = () => {
+    localStorage.removeItem('maintenance_config');
+    checkMaintenanceStatus(true);
+  };
+
+  return {
+    ...status,
+    refreshStatus,
+    setLocalMaintenanceMode,
+    clearLocalMaintenanceMode
+  };
+};
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

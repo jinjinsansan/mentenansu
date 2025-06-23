@@ -14,7 +14,10 @@ export const useSupabase = () => {
     setLoading(true);
     
     if (!supabase) {
-      console.log('Supabase未設定 - ローカルモードで動作');
+      // 開発環境でのみログ出力
+      if (import.meta.env.DEV) {
+        console.log('Supabase未設定 - ローカルモードで動作');
+      }
       setIsConnected(false);
       setLoading(false);
       return;
@@ -28,7 +31,9 @@ export const useSupabase = () => {
         console.error('Supabase接続エラー:', error);
         setIsConnected(false);
       } else {
-        console.log('Supabase接続成功');
+        if (import.meta.env.DEV) {
+          console.log('Supabase接続成功');
+        }
         setIsConnected(true);
         
         // 既存ユーザーの確認
@@ -98,7 +103,9 @@ export const useSupabase = () => {
           self_esteem_score: entryData.selfEsteemScore,
           worthlessness_score: entryData.worthlessnessScore
         });
-        console.log('Supabaseにも保存しました');
+        if (import.meta.env.DEV) {
+          console.log('Supabaseにも保存しました');
+        }
       } catch (error) {
         console.error('Supabase保存エラー:', error);
         // エラーが発生してもローカル保存は成功しているので続行
@@ -130,7 +137,9 @@ export const useSupabase = () => {
           self_esteem_score: updates.selfEsteemScore,
           worthlessness_score: updates.worthlessnessScore
         });
-        console.log('Supabaseも更新しました');
+        if (import.meta.env.DEV) {
+          console.log('Supabaseも更新しました');
+        }
       } catch (error) {
         console.error('Supabase更新エラー:', error);
       }
@@ -150,7 +159,9 @@ export const useSupabase = () => {
     if (isConnected && currentUser) {
       try {
         await diaryService.deleteEntry(id);
-        console.log('Supabaseからも削除しました');
+        if (import.meta.env.DEV) {
+          console.log('Supabaseからも削除しました');
+        }
       } catch (error) {
         console.error('Supabase削除エラー:', error);
       }
