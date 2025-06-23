@@ -319,6 +319,19 @@ const App: React.FC = () => {
   const handleUsernameSubmit = (username: string) => {
     localStorage.setItem('line-username', username);
     setLineUsername(username);
+    
+    // 同意履歴にユーザー名を追加
+    const existingConsents = localStorage.getItem('consentRecords');
+    if (existingConsents) {
+      const consents = JSON.parse(existingConsents);
+      // 最新の同意記録（ユーザー名が空のもの）を更新
+      const latestConsent = consents.find((record: any) => !record.line_username);
+      if (latestConsent) {
+        latestConsent.line_username = username;
+        localStorage.setItem('consentRecords', JSON.stringify(consents));
+      }
+    }
+    
     // Supabaseユーザーを初期化
     initializeUser(username);
     setCurrentPage('how-to');
