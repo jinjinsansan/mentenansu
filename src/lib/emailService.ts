@@ -157,5 +157,8 @@ class EmailService {
   }
 }
 
+// メールアドレスの正規表現
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 export const emailService = EmailService.getInstance();
 export type { EmailConfig, EmailParams };
