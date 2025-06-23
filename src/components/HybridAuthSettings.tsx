@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ToggleLeft, ToggleRight, AlertTriangle, CheckCircle, Trash2, RefreshCw } from 'lucide-react';
+import { Shield, ToggleLeft, ToggleRight, AlertTriangle, CheckCircle, Trash2, RefreshCw, Mail, Settings, ExternalLink } from 'lucide-react';
 import { hybridAuth } from '../lib/hybridAuth';
+import { emailService } from '../lib/emailService';
 
 const HybridAuthSettings: React.FC = () => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [userProfile, setUserProfile] = useState(hybridAuth.getUserProfile());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailConfig, setEmailConfig] = useState(emailService.getConfigStatus());
+  const [testEmail, setTestEmail] = useState('');
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<string>('');
 
   useEffect(() => {
     const enabled = localStorage.getItem('hybrid_auth_enabled') === 'true';
@@ -32,6 +37,25 @@ const HybridAuthSettings: React.FC = () => {
     }
     
     setLoading(false);
+  };
+
+  const handleTestEmail = async () => {
+    if (!testEmail.trim()) {
+      setTestResult('メールアドレスを入力してください。');
+      return;
+    }
+
+    setTestLoading(true);
+    setTestResult('');
+
+    try {
+      const result = await emailService.testEmail(testEmail);
+      setTestResult(result.message);
+    } catch (error) {
+      setTestResult('テスト送信に失敗しました。');
+    } finally {
+      setTestLoading(false);
+    }
   };
 
   const handleDeleteAllData = () => {
@@ -123,6 +147,115 @@ const HybridAuthSettings: React.FC = () => {
                 <ToggleLeft className="w-8 h-8 text-gray-400" />
               )}
             </button>
+          </div>
+        </div>
+
+        {/* EmailJS設定状態 */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <h3 className="text-lg font-jp-bold text-gray-900 mb-4">EmailJS設定状態</h3>
+          
+          <div className={`p-4 rounded-lg border ${
+            emailConfig.isConfigured 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-yellow-50 border-yellow-200'
+          }`}>
+            <div className="flex items-center space-x-2 mb-3">
+              <Mail className={`w-5 h-5 ${
+                emailConfig.isConfigured ? 'text-green-600' : 'text-yellow-600'
+              }`} />
+              <span className={`font-jp-bold ${
+                emailConfig.isConfigured ? 'text-green-900' : 'text-yellow-900'
+              }`}>
+                {emailConfig.isConfigured ? 'EmailJS設定済み' : 'EmailJS未設定'}
+              </span>
+            </div>
+            
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center space-x-2">
+                {emailConfig.hasServiceId ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                )}
+                <span className={emailConfig.hasServiceId ? 'text-green-800' : 'text-yellow-800'}>
+                  Service ID: {emailConfig.hasServiceId ? '設定済み' : '未設定'}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                {emailConfig.hasTemplateId ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                )}
+                <span className={emailConfig.hasTemplateId ? 'text-green-800' : 'text-yellow-800'}>
+                  Template ID: {emailConfig.hasTemplateId ? '設定済み' : '未設定'}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                {emailConfig.hasPublicKey ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                )}
+                <span className={emailConfig.hasPublicKey ? 'text-green-800' : 'text-yellow-800'}>
+                  Public Key: {emailConfig.hasPublicKey ? '設定済み' : '未設定'}
+                </span>
+              </div>
+            </div>
+            
+            {!emailConfig.isConfigured && (
+              <div className="mt-4 pt-4 border-t border-yellow-200">
+                <p className="text-yellow-800 font-jp-normal text-sm mb-3">
+                  EmailJSを設定すると実際のメールが送信されます。設定方法：
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-xs text-yellow-700 ml-4">
+                  <li>EmailJSアカウントを作成</li>
+                  <li>メールサービスを設定</li>
+                  <li>メールテンプレートを作成</li>
+                  <li>環境変数を設定</li>
+                </ol>
+                <a
+                  href="https://www.emailjs.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm mt-2"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>EmailJSサイトへ</span>
+                </a>
+              </div>
+            )}
+          </div>
+          
+          {/* テスト送信 */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <h4 className="font-jp-bold text-gray-900 mb-3">テスト送信</h4>
+            <div className="flex space-x-2">
+              <input
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="テスト用メールアドレス"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-jp-normal text-sm"
+              />
+              <button
+                onClick={handleTestEmail}
+                disabled={testLoading || !testEmail.trim()}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-jp-medium text-sm transition-colors flex items-center space-x-2"
+              >
+                {testLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Mail className="w-4 h-4" />
+                )}
+                <span>テスト送信</span>
+              </button>
+            </div>
+            {testResult && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm">
+                {testResult}
+              </div>
+            )}
           </div>
         </div>
 
