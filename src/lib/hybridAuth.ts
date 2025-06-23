@@ -5,6 +5,8 @@
 
 import { emailService } from './emailService';
 
+import { emailService } from './emailService';
+
 interface DeviceFingerprint {
   id: string;
   userAgent: string;
@@ -108,7 +110,6 @@ class HybridAuthSystem {
   // 第二段階：メールアドレス認証
   async requestEmailVerification(email: string): Promise<{ success: boolean; message: string }> {
     // メールアドレスの形式チェック
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return { success: false, message: 'メールアドレスの形式が正しくありません' };
     }
@@ -126,16 +127,12 @@ class HybridAuthSystem {
     });
 
     // EmailJSを使用してメール送信
+    // EmailJSを使用してメール送信
     try {
       const result = await emailService.sendVerificationEmail(email, code);
       return result;
     } catch (error) {
       console.error('メール送信エラー:', error);
-      return {
-        success: false,
-        message: 'メール送信に失敗しました。しばらく時間をおいて再度お試しください。'
-      };
-    }
   }
 
   // 確認コードの検証
