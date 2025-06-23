@@ -39,7 +39,6 @@ const AdminPanel: React.FC = () => {
   const [assigningEntry, setAssigningEntry] = useState<JournalEntry | null>(null);
   const [editingMemo, setEditingMemo] = useState<string | null>(null);
   const [memoText, setMemoText] = useState('');
-  const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'maintenance'>('diary');
   const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'data-migration' | 'maintenance'>('diary');
 
   const emotions = [
