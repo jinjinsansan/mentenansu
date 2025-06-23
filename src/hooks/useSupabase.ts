@@ -14,10 +14,7 @@ export const useSupabase = () => {
     setLoading(true);
     
     if (!supabase) {
-      // 開発環境でのみログ出力
-      if (import.meta.env.DEV) {
-        console.log('Supabase未設定 - ローカルモードで動作');
-      }
+      console.log('Supabase未設定 - ローカルモードで動作');
       setIsConnected(false);
       setLoading(false);
       return;
@@ -31,19 +28,12 @@ export const useSupabase = () => {
         console.error('Supabase接続エラー:', error);
         setIsConnected(false);
       } else {
-        if (import.meta.env.DEV) {
-          console.log('Supabase接続成功');
-        }
+        console.log('Supabase接続成功');
         setIsConnected(true);
         
         // 既存ユーザーの確認
         const lineUsername = localStorage.getItem('line-username');
         if (lineUsername) {
-          // まず既存ユーザーをチェック
-          const existingUser = await userService.getUserByUsername(lineUsername);
-          if (existingUser) {
-            setCurrentUser(existingUser);
-          }
           await initializeUser(lineUsername);
         }
       }
@@ -67,15 +57,10 @@ export const useSupabase = () => {
         user = await userService.createUser(lineUsername);
         
         if (user) {
-          console.log('新規ユーザーを作成しました:', user);
           // ローカルデータを移行
           await syncService.migrateLocalData(user.id);
-        } else {
-          console.error('ユーザー作成に失敗しました');
-          return null;
         }
       } else {
-        console.log('既存ユーザーを使用します:', user);
         // 既存ユーザーの場合、Supabaseからローカルに同期
         await syncService.syncToLocal(user.id);
       }
@@ -113,9 +98,7 @@ export const useSupabase = () => {
           self_esteem_score: entryData.selfEsteemScore,
           worthlessness_score: entryData.worthlessnessScore
         });
-        if (import.meta.env.DEV) {
-          console.log('Supabaseにも保存しました');
-        }
+        console.log('Supabaseにも保存しました');
       } catch (error) {
         console.error('Supabase保存エラー:', error);
         // エラーが発生してもローカル保存は成功しているので続行
@@ -147,9 +130,7 @@ export const useSupabase = () => {
           self_esteem_score: updates.selfEsteemScore,
           worthlessness_score: updates.worthlessnessScore
         });
-        if (import.meta.env.DEV) {
-          console.log('Supabaseも更新しました');
-        }
+        console.log('Supabaseも更新しました');
       } catch (error) {
         console.error('Supabase更新エラー:', error);
       }
@@ -169,9 +150,7 @@ export const useSupabase = () => {
     if (isConnected && currentUser) {
       try {
         await diaryService.deleteEntry(id);
-        if (import.meta.env.DEV) {
-          console.log('Supabaseからも削除しました');
-        }
+        console.log('Supabaseからも削除しました');
       } catch (error) {
         console.error('Supabase削除エラー:', error);
       }

@@ -5,8 +5,6 @@ import MaintenanceMode from './components/MaintenanceMode';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
 import LineAuthGuard from './components/LineAuthGuard';
 import AuthCallback from './pages/AuthCallback';
-import AdminPanel from './components/AdminPanel';
-import DataMigration from './components/DataMigration';
 import DiaryPage from './pages/DiaryPage';
 import DiarySearchPage from './pages/DiarySearchPage';
 import HowTo from './pages/HowTo';
@@ -18,9 +16,6 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
 import { useAutoSync } from './hooks/useAutoSync';
 import { checkAuthStatus } from './lib/lineAuth';
-
-// URLパスをチェックしてコールバックページかどうか判定
-const isAuthCallback = window.location.pathname === '/auth/callback';
 
 interface JournalEntry {
   id: string;
@@ -1027,12 +1022,6 @@ const App: React.FC = () => {
   }
 
   return (
-    <>
-      {/* 認証コールバックページの場合は特別処理 */}
-      {isAuthCallback ? (
-        <AuthCallback />
-      ) : lineAuthEnabled ? (
-        <LineAuthGuard showLineLogin={showLineLogin} onCloseLineLogin={() => setShowLineLogin(false)}>
     <div className="min-h-screen bg-gray-50">
       {!showPrivacyConsent && currentPage !== 'home' && (
         <>
@@ -1495,9 +1484,6 @@ const App: React.FC = () => {
             {/* カウンセラーログインモーダル */}
             {renderCounselorLoginModal()}
           </div>
-        )}
-      )}
-    </>
   );
 };
 

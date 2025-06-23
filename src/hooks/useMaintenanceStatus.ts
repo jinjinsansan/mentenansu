@@ -28,10 +28,7 @@ export const useMaintenanceStatus = () => {
 
   const checkMaintenanceStatus = async (showLoading = false) => {
     try {
-      // showLoadingがtrueの場合のみローディング状態を表示
-      if (showLoading) {
-        setStatus(prev => ({ ...prev, loading: true, error: null }));
-      }
+      setStatus(prev => ({ ...prev, loading: showLoading, error: null }));
 
       // 1. 環境変数をチェック
       const envMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
@@ -58,33 +55,27 @@ export const useMaintenanceStatus = () => {
 
       // 2. リモート設定をチェック（Supabase Functions経由）
       try {
-        // 開発環境では /api/maintenance-status は存在しないのでスキップ
-        if (import.meta.env.PROD) {
-          const response = await fetch('/api/maintenance-status', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+        const response = await fetch('/api/maintenance-status', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-          if (response.ok) {
-            const remoteConfig = await response.json();
-            if (remoteConfig.isEnabled) {
-              setStatus(prev => ({
-                isMaintenanceMode: true,
-                config: remoteConfig,
-                loading: false,
-                error: null
-              }));
-              return;
-            }
+        if (response.ok) {
+          const remoteConfig = await response.json();
+          if (remoteConfig.isEnabled) {
+            setStatus(prev => ({
+              isMaintenanceMode: true,
+              config: remoteConfig,
+              loading: false,
+              error: null
+            }));
+            return;
           }
         }
       } catch (remoteError) {
-        // 本番環境でのみエラーログを出力
-        if (import.meta.env.PROD) {
-          console.log('リモート設定の取得に失敗しました:', remoteError);
-        }
+        console.log('リモート設定の取得に失敗しました（環境変数を使用）:', remoteError);
       }
 
       // 3. ローカル設定をチェック（開発・テスト用）

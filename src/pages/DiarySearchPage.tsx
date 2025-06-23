@@ -58,9 +58,7 @@ const DiarySearchPage: React.FC = () => {
         const sortedEntries = [...parsedEntries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setRecentEntries(sortedEntries.slice(0, 5));
         
-        if (import.meta.env.DEV) {
-          console.log('ローカルストレージからデータを読み込みました');
-        }
+        console.log('ローカルストレージからデータを読み込みました');
       }
     } catch (error) {
       console.error('データ読み込みエラー:', error);
