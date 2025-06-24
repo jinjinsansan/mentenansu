@@ -12,7 +12,6 @@ import {
   incrementLoginAttempts,
   resetLoginAttempts,
   isAccountLocked,
-  lockAccount,
   logSecurityEvent,
   getCurrentUser,
   AuthError,
