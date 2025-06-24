@@ -3,6 +3,7 @@ import { useSupabase } from './useSupabase';
 import { userService, syncService, consentService } from '../lib/supabase';
 import { getCurrentUser, logSecurityEvent } from '../lib/deviceAuth';
 import { getCurrentUser, logSecurityEvent } from '../lib/deviceAuth';
+import { getCurrentUser, logSecurityEvent } from '../lib/deviceAuth';
 
 interface AutoSyncStatus {
   isAutoSyncEnabled: boolean;
@@ -49,13 +50,14 @@ export const useAutoSync = () => {
       if (lineUsername) {
         handleAutoInitialization(lineUsername);
       }
+      if (lineUsername) {
+        handleAutoInitialization(lineUsername);
+      }
     }
   }, [isConnected]);
 
   // 自動初期化処理
   const handleAutoInitialization = async (lineUsername: string) => {
-      // 1. ユーザーの存在確認・作成
-      let user = await userService.getUserByUsername(lineUsername);
       
       if (!user) {
         if (import.meta.env.DEV) {
@@ -67,7 +69,6 @@ export const useAutoSync = () => {
         } catch (logError) {
           console.error('セキュリティログエラー:', logError);
         }
-        
         
         try {
           logSecurityEvent('auto_sync_create_user', lineUsername, 'ユーザーが存在しないため、自動作成します');
@@ -85,6 +86,9 @@ export const useAutoSync = () => {
           }
             await initializeUser(lineUsername);
           }
+          if (initializeUser) {
+            await initializeUser(lineUsername);
+          }
         }
       } else {
         setStatus(prev => ({ ...prev, userCreated: true }));
@@ -93,6 +97,7 @@ export const useAutoSync = () => {
       // 2. 自動同期が有効な場合のみデータ同期
       if (status.isAutoSyncEnabled && user) {
         await performAutoSync(user.id);
+      }
     } catch (error) {
       console.error('自動初期化エラー:', error);
       setStatus(prev => ({ 
@@ -147,7 +152,6 @@ export const useAutoSync = () => {
           console.error('セキュリティログエラー:', error);
         }
         
-        
         try {
           logSecurityEvent('auto_sync_completed', userId, '自動同期が完了しました');
         } catch (error) {
@@ -169,6 +173,14 @@ export const useAutoSync = () => {
   // 自動同期の有効/無効切り替え
   const toggleAutoSync = (enabled: boolean) => {
     localStorage.setItem('auto_sync_enabled', enabled.toString());
+    
+    try {
+      const user = getCurrentUser();
+      logSecurityEvent('auto_sync_toggled', user?.lineUsername || 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
+    } catch (error) {
+      console.error('セキュリティログエラー:', error);
+    }
+    
     
     try {
       const user = getCurrentUser();
@@ -218,6 +230,13 @@ export const useAutoSync = () => {
         console.error('セキュリティログエラー:', error);
       }
       
+      try {
+        const user = getCurrentUser();
+        logSecurityEvent('manual_sync_triggered', user?.lineUsername || currentUser.id, '手動同期が実行されました');
+      } catch (error) {
+        console.error('セキュリティログエラー:', error);
+      }
+      
     } finally {
       setStatus(prev => ({ ...prev, syncInProgress: false }));
     }
@@ -237,6 +256,11 @@ export const useAutoSync = () => {
         clearInterval(syncTimeoutRef.current);
       }
       
+      // 前回のタイマーをクリア
+      if (syncTimeoutRef.current) {
+        clearInterval(syncTimeoutRef.current);
+      }
+      
       syncTimeoutRef.current = setInterval(() => {
         performAutoSync(currentUser.id);
       }, 5 * 60 * 1000); // 5分
@@ -246,6 +270,8 @@ export const useAutoSync = () => {
           clearInterval(syncTimeoutRef.current);
         }
       };
+    } else if (syncTimeoutRef.current) {
+      clearInterval(syncTimeoutRef.current);
     } else if (syncTimeoutRef.current) {
       clearInterval(syncTimeoutRef.current);
     } else if (syncTimeoutRef.current) {

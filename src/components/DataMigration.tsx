@@ -292,6 +292,8 @@ const DataMigration: React.FC = () => {
           </div>
             <AutoSyncSettings />
           </div>
+            <AutoSyncSettings />
+          </div>
         ) : (
           <div className="space-y-6">
         {/* 本番環境統計（Supabase接続時のみ表示） */}
