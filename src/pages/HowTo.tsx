@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Target, Eye, ArrowRight, Lightbulb, Shield } from 'lucide-react';
+import { Heart, Target, Eye, ArrowRight, Lightbulb } from 'lucide-react';
 
 const HowTo: React.FC = () => {
   return (
@@ -93,34 +93,6 @@ const HowTo: React.FC = () => {
                 <p className="text-gray-700 font-jp-normal leading-relaxed text-sm sm:text-base">
                   かんじょうにっきを毎日つけることで、自然と心の中と向き合えるようになります。
                 </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* セキュリティ強化 */}
-        <div className="bg-indigo-50 rounded-xl p-4 sm:p-6 border border-indigo-200">
-          <div className="flex items-start space-x-4">
-            <Shield className="w-8 h-8 text-indigo-500 mt-1 flex-shrink-0" />
-            <div className="flex-1">
-              <h2 className="text-xl sm:text-2xl font-jp-bold text-gray-900 mb-4">セキュリティ強化</h2>
-              <p className="text-gray-700 font-jp-normal leading-relaxed mb-6 text-sm sm:text-base">
-                1000人のユーザーが安全に利用できるよう、<span className="font-jp-bold text-indigo-600">ハイブリッド認証システム</span>を導入しました。
-              </p>
-              
-              {/* セキュリティ機能 */}
-              <div className="bg-white rounded-lg p-4 sm:p-6 border border-indigo-200">
-                <div className="flex items-start space-x-3">
-                  <Shield className="w-6 h-6 text-indigo-600 mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-jp-bold text-indigo-900 mb-2">3段階認証システム</h3>
-                    <div className="space-y-2 text-sm text-gray-700">
-                      <p><span className="font-jp-bold">第1段階:</span> デバイス固有情報による自動識別</p>
-                      <p><span className="font-jp-bold">第2段階:</span> メールアドレス認証（4桁確認コード）</p>
-                      <p><span className="font-jp-bold">第3段階:</span> 合言葉によるバックアップ認証</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

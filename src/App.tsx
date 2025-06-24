@@ -5,7 +5,6 @@ import MaintenanceMode from './components/MaintenanceMode';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
 import AdminPanel from './components/AdminPanel';
 import DataMigration from './components/DataMigration';
-import HybridAuthPage from './pages/HybridAuthPage';
 import DiaryPage from './pages/DiaryPage';
 import DiarySearchPage from './pages/DiarySearchPage';
 import HowTo from './pages/HowTo';
@@ -15,7 +14,6 @@ import EmotionTypes from './pages/EmotionTypes';
 import Support from './pages/Support';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import { useSupabase } from './hooks/useSupabase';
-import { hybridAuth } from './lib/hybridAuth';
 
 interface JournalEntry {
   id: string;
@@ -50,9 +48,6 @@ const App: React.FC = () => {
   const [currentCounselor, setCurrentCounselor] = useState<string | null>(null);
 
   const [dataLoading, setDataLoading] = useState(true);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [isHybridAuth, setIsHybridAuth] = useState(false);
-  const [navigateEvent, setNavigateEvent] = useState<string | null>(null);
   const { isMaintenanceMode, config: maintenanceConfig, loading: maintenanceLoading } = useMaintenanceStatus();
   const { isConnected, currentUser, initializeUser } = useSupabase();
 
@@ -71,31 +66,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadEntries();
-    checkAuthMethod();
   }, []);
-
-  // ナビゲーションイベントのリスナー
-  useEffect(() => {
-    const handleNavigate = (event: CustomEvent<{ page: string }>) => {
-      setCurrentPage(event.detail.page);
-      setNavigateEvent(event.detail.page);
-    };
-
-    window.addEventListener('navigate', handleNavigate as EventListener);
-    
-    return () => {
-      window.removeEventListener('navigate', handleNavigate as EventListener);
-    };
-  }, []);
-
-  const checkAuthMethod = () => {
-    // ハイブリッド認証が有効かチェック
-    const isHybridAuthEnabled = localStorage.getItem('hybrid_auth_enabled') === 'true';
-    const hasHybridProfile = hybridAuth.getUserProfile() !== null;
-    
-    setIsHybridAuth(isHybridAuthEnabled || hasHybridProfile);
-    setAuthChecked(true);
-  };
 
   useEffect(() => {
     const consentGiven = localStorage.getItem('privacyConsentGiven');
@@ -104,13 +75,11 @@ const App: React.FC = () => {
       setShowPrivacyConsent(false);
       if (savedUsername) {
         setLineUsername(savedUsername);
-        // ハイブリッド認証が無効の場合のみSupabaseユーザーを初期化
-        if (!isHybridAuth) {
-          initializeUser(savedUsername);
-        }
+        // Supabaseユーザーを初期化
+        initializeUser(savedUsername);
       }
     }
-  }, [isHybridAuth]);
+  }, []);
 
   // テストデータ生成関数
   const generateTestData = () => {
@@ -345,10 +314,8 @@ const App: React.FC = () => {
   const handleUsernameSubmit = (username: string) => {
     localStorage.setItem('line-username', username);
     setLineUsername(username);
-    // ハイブリッド認証が無効の場合のみSupabaseユーザーを初期化
-    if (!isHybridAuth) {
-      initializeUser(username);
-    }
+    // Supabaseユーザーを初期化
+    initializeUser(username);
     setCurrentPage('how-to');
   };
 
@@ -862,8 +829,6 @@ const App: React.FC = () => {
         return isAdmin ? <AdminPanel /> : <div>アクセス権限がありません</div>;
       case 'data-migration':
         return isAdmin ? <DataMigration /> : <div>アクセス権限がありません</div>;
-      case 'hybrid-auth':
-        return <HybridAuthPage />;
       case 'worthlessness-trend':
         const worthlessnessData = getWorthlessnessData();
         const filteredData = emotionPeriod === 'week' 
@@ -1019,29 +984,6 @@ const App: React.FC = () => {
     return <MaintenanceMode config={maintenanceConfig} />;
   }
 
-  // 認証方法チェック中
-  if (!authChecked) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-jp-normal">認証システムを確認中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ハイブリッド認証が有効な場合
-  if (isHybridAuth && navigateEvent) {
-    // ナビゲーションイベントがあれば、ハイブリッド認証をスキップ
-    setIsHybridAuth(false);
-    setNavigateEvent(null);
-  }
-
-  if (isHybridAuth) {
-    return <HybridAuthPage />;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {!showPrivacyConsent && currentPage !== 'home' && (
@@ -1150,7 +1092,6 @@ const App: React.FC = () => {
                     { key: 'emotion-types', label: '感情の種類', icon: Heart },
                     { key: 'support', label: 'サポートについて', icon: Shield },
                     { key: 'privacy-policy', label: '同意文', icon: Shield },
-                    { key: 'hybrid-auth', label: 'セキュア認証', icon: Shield },
                     { key: 'diary', label: '日記', icon: Plus },
                     { key: 'search', label: '日記検索', icon: Search },
                     { key: 'worthlessness-trend', label: '無価値感推移', icon: TrendingUp },
