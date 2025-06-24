@@ -534,34 +534,13 @@ export const counselorCommentService = {
     }
   },
 
-  async getCommentsByDiaryEntry(diaryEntryId: string): Promise<CounselorComment[]> {
-    if (!supabase) return [];
-    
-    try {
-      const { data, error } = await supabase
-        .from('counselor_comments')
-        .select(`
-          *,
-          counselor:counselors(name, email)
-        `)
-        .eq('diary_entry_id', diaryEntryId)
-        .order('created_at', { ascending: true });
-      
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('コメント取得エラー:', error);
-      return [];
-    }
-  },
-
   async updateComment(commentId: string, comment: string): Promise<CounselorComment | null> {
     if (!supabase) return null;
     
     try {
       const { data, error } = await supabase
         .from('counselor_comments')
-        .update({ comment: comment.trim() })
+        .update({ comment })
         .eq('id', commentId)
         .select(`
           *,
@@ -594,101 +573,6 @@ export const counselorCommentService = {
     }
   },
 
-  // 管理画面用：全てのコメントを取得
-  async getAllComments(limit = 100, offset = 0): Promise<CounselorComment[]> {
-    if (!supabase) return [];
-    
-    try {
-      const { data, error } = await supabase
-        .from('counselor_comments')
-        .select(`
-          *,
-          counselor:counselors(name, email),
-          diary_entry:diary_entries(
-            date,
-            emotion,
-            event,
-            user:users(line_username)
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-      
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('全コメント取得エラー:', error);
-      return [];
-    }
-  }
-};
-
-// カウンセラーコメント管理関数
-export const counselorCommentService = {
-  async createComment(diaryEntryId: string, counselorId: string, comment: string): Promise<CounselorComment | null> {
-    if (!supabase) return null;
-    
-    try {
-      const { data, error } = await supabase
-        .from('counselor_comments')
-        .insert([{
-          diary_entry_id: diaryEntryId,
-          counselor_id: counselorId,
-          comment: comment
-        }])
-        .select(`
-          *,
-          counselor:counselors(name, email)
-        `)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('カウンセラーコメント作成エラー:', error);
-      return null;
-    }
-  },
-
-  async updateComment(commentId: string, comment: string): Promise<CounselorComment | null> {
-    if (!supabase) return null;
-    
-    try {
-      const { data, error } = await supabase
-        .from('counselor_comments')
-        .update({ comment })
-        .eq('id', commentId)
-        .select(`
-          *,
-          counselor:counselors(name, email)
-        `)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('カウンセラーコメント更新エラー:', error);
-      return null;
-    }
-  },
-
-  async deleteComment(commentId: string): Promise<boolean> {
-    if (!supabase) return false;
-    
-    try {
-      const { error } = await supabase
-        .from('counselor_comments')
-        .delete()
-        .eq('id', commentId);
-      
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('カウンセラーコメント削除エラー:', error);
-      return false;
-    }
-  },
-
   async getCommentsByDiaryEntry(diaryEntryId: string): Promise<CounselorComment[]> {
     if (!supabase) return [];
     
@@ -705,12 +589,13 @@ export const counselorCommentService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('カウンセラーコメント取得エラー:', error);
+      console.error('コメント取得エラー:', error);
       return [];
     }
   },
 
-  async getAllComments(): Promise<CounselorComment[]> {
+  // 管理画面用：全てのコメントを取得
+  async getAllComments(limit = 100, offset = 0): Promise<CounselorComment[]> {
     if (!supabase) return [];
     
     try {
@@ -723,16 +608,17 @@ export const counselorCommentService = {
             id,
             date,
             emotion,
-            event,
+            event, 
             user:users(line_username)
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
       
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('全カウンセラーコメント取得エラー:', error);
+      console.error('全コメント取得エラー:', error);
       return [];
     }
   }
