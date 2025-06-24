@@ -149,10 +149,6 @@ export const useAutoSync = () => {
         } catch (error) {
           console.error('セキュリティログ記録エラー:', error);
         }
-          logSecurityEvent('auto_sync_completed', userId, '自動同期が完了しました');
-        } catch (error) {
-          console.error('セキュリティログ記録エラー:', error);
-        }
         
         setStatus(prev => ({ ...prev, lastSyncTime: now }));
       }
