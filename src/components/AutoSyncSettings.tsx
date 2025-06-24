@@ -1,6 +1,6 @@
 import React from 'react';
 import { RefreshCw, CheckCircle, AlertTriangle, Clock, Database, Shield } from 'lucide-react';
-import { useAutoSync } from '../hooks/useAutoSync'; 
+import { useAutoSync } from '../hooks/useAutoSync';
 
 const AutoSyncSettings: React.FC = () => {
   const {
@@ -94,7 +94,7 @@ const AutoSyncSettings: React.FC = () => {
               type="checkbox"
               checked={isAutoSyncEnabled}
               onChange={(e) => toggleAutoSync(e.target.checked)}
-              disabled={!isConnected || syncInProgress}
+              disabled={syncInProgress}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
@@ -107,7 +107,7 @@ const AutoSyncSettings: React.FC = () => {
             <h3 className="font-jp-semibold text-gray-900">同期状態</h3>
             <button
               onClick={handleManualSync}
-              disabled={syncInProgress || !isConnected || !userCreated}
+              disabled={syncInProgress || !isConnected}
               className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-jp-medium text-sm transition-colors"
             >
               {syncInProgress ? (
@@ -124,7 +124,7 @@ const AutoSyncSettings: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-jp-medium text-gray-700">最終同期</span>
-              </div>
+              </div> 
               <span className="text-sm text-gray-600 font-jp-normal">
                 {formatSyncTime(lastSyncTime)}
               </span>
@@ -161,7 +161,7 @@ const AutoSyncSettings: React.FC = () => {
               <p className="font-jp-medium">自動同期について</p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>アプリ起動時に自動的にユーザーを作成・確認します</li>
-                <li>ローカルデータを5分間隔でSupabaseに同期します</li>
+                <li>ローカルデータを5分間隔でSupabaseに同期します</li> 
                 <li>同意履歴も自動的に同期されます</li>
                 <li>手動での操作は不要になります</li>
                 <li>データの安全性は従来と同じレベルで保たれます</li>

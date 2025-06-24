@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users, Info, Settings, BarChart3, TrendingUp } from 'lucide-react';
 import { useSupabase } from '../hooks/useSupabase';
 import { syncService, userService, consentService, diaryService, supabase } from '../lib/supabase';
-import AutoSyncSettings from './AutoSyncSettings';
+import AutoSyncSettings from './AutoSyncSettings'; 
 
 const DataMigration: React.FC = () => {
   const { isConnected, currentUser, loading } = useSupabase();
@@ -287,7 +287,9 @@ const DataMigration: React.FC = () => {
 
         {/* タブコンテンツ */}
         {activeTab === 'auto' ? (
-          <AutoSyncSettings />
+          <div className="flex-1">
+            <AutoSyncSettings />
+          </div>
         ) : (
           <div className="space-y-6">
         {/* 本番環境統計（Supabase接続時のみ表示） */}
