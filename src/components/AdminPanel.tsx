@@ -3,6 +3,8 @@ import { Search, Filter, Eye, X, User, Calendar, AlertTriangle, UserCheck, Edit3
 import AdvancedSearchFilter from './AdvancedSearchFilter';
 import CounselorManagement from './CounselorManagement';
 import MaintenanceController from './MaintenanceController';
+import DeviceAuthManagement from './DeviceAuthManagement';
+import SecurityDashboard from './SecurityDashboard';
 import { diaryService } from '../lib/supabase';
 
 interface JournalEntry {
@@ -38,7 +40,7 @@ const AdminPanel: React.FC = () => {
   const [assigningEntry, setAssigningEntry] = useState<JournalEntry | null>(null);
   const [editingMemo, setEditingMemo] = useState<string | null>(null);
   const [memoText, setMemoText] = useState('');
-  const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'maintenance'>('diary');
+  const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'maintenance' | 'device-auth' | 'security'>('diary');
 
   const emotions = [
     '恐怖', '悲しみ', '怒り', '悔しい', '無価値感', '罪悪感', '寂しさ', '恥ずかしさ'
@@ -472,7 +474,9 @@ const AdminPanel: React.FC = () => {
               { key: 'diary', label: '日記管理', shortLabel: '日記', icon: MessageSquare },
               { key: 'search', label: '高度な検索', shortLabel: '検索', icon: Search },
               { key: 'counselor', label: 'カウンセラー', shortLabel: 'カウンセラー', icon: User },
-              { key: 'maintenance', label: 'メンテナンス', shortLabel: 'メンテ', icon: AlertTriangle }
+              { key: 'maintenance', label: 'メンテナンス', shortLabel: 'メンテ', icon: AlertTriangle },
+              { key: 'device-auth', label: 'デバイス認証', shortLabel: '認証', icon: Shield },
+              { key: 'security', label: 'セキュリティ', shortLabel: 'セキュリティ', icon: Eye }
             ].map(({ key, label, shortLabel, icon: Icon }) => (
               <button
                 key={key}
@@ -933,6 +937,8 @@ const AdminPanel: React.FC = () => {
         {activeTab === 'search' && <AdvancedSearchFilter entries={entries} onFilteredResults={setFilteredEntries} onViewEntry={setSelectedEntry} />}
         {activeTab === 'counselor' && <CounselorManagement />}
         {activeTab === 'maintenance' && <MaintenanceController />}
+        {activeTab === 'device-auth' && <DeviceAuthManagement />}
+        {activeTab === 'security' && <SecurityDashboard />}
       </div>
       {/* 詳細モーダル */}
       {renderDetailModal()}

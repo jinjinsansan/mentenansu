@@ -5,6 +5,7 @@ import {
   saveDeviceFingerprint, 
   saveUserCredentials, 
   saveSecurityQuestions,
+  logSecurityEvent,
   SECURITY_QUESTIONS,
   type SecurityQuestion 
 } from '../lib/deviceAuth';
@@ -125,6 +126,9 @@ const DeviceAuthRegistration: React.FC<DeviceAuthRegistrationProps> = ({
 
       // 3. 秘密の質問を保存
       saveSecurityQuestions(securityQuestions);
+
+      // セキュリティイベントをログ
+      logSecurityEvent('device_registered', formData.lineUsername, 'デバイス認証システムに新規登録');
 
       setStep('complete');
 

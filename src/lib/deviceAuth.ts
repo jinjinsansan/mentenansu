@@ -239,6 +239,46 @@ export const clearAuthSession = (): void => {
   localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
 };
 
+// セキュリティイベントログ
+export const logSecurityEvent = (type: string, username: string, details: string): void => {
+  const events = getSecurityEvents();
+  const newEvent = {
+    id: Date.now().toString(),
+    type,
+    username,
+    timestamp: new Date().toISOString(),
+    details
+  };
+  
+  events.push(newEvent);
+  
+  // 最新100件のみ保持
+  const recentEvents = events.slice(-100);
+  localStorage.setItem('security_events', JSON.stringify(recentEvents));
+};
+
+export const getSecurityEvents = (): any[] => {
+  const events = localStorage.getItem('security_events');
+  return events ? JSON.parse(events) : [];
+};
+
+// セキュリティ統計
+export const getSecurityStats = () => {
+  const credentials = getUserCredentials();
+  const session = getAuthSession();
+  const events = getSecurityEvents();
+  const today = new Date().toISOString().split('T')[0];
+  
+  return {
+    totalUsers: credentials ? 1 : 0,
+    activeUsers: session ? 1 : 0,
+    lockedUsers: credentials && isAccountLocked(credentials.lineUsername) ? 1 : 0,
+    todayLogins: events.filter(e => e.type === 'login_success' && e.timestamp.startsWith(today)).length,
+    failedAttempts: credentials ? getLoginAttempts(credentials.lineUsername) : 0,
+    totalEvents: events.length
+  };
+};
+
 // デバイス情報の保存・取得
 export const saveDeviceFingerprint = (fingerprint: DeviceFingerprint): void => {
   localStorage.setItem(STORAGE_KEYS.DEVICE_FINGERPRINT, JSON.stringify(fingerprint));

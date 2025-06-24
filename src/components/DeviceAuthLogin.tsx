@@ -13,6 +13,7 @@ import {
   resetLoginAttempts,
   isAccountLocked,
   lockAccount,
+  logSecurityEvent,
   AuthError,
   AuthErrorType,
   SECURITY_QUESTIONS,
@@ -118,6 +119,7 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
       if (hashedPin === credentials.pinCodeHash) {
         // ログイン成功
         resetLoginAttempts(credentials.lineUsername);
+        logSecurityEvent('login_success', credentials.lineUsername, 'PIN認証によるログイン成功');
         createAuthSession({
           lineUsername: credentials.lineUsername,
           pinCode: formData.pinCode,
@@ -128,10 +130,12 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
       } else {
         // ログイン失敗
         const attempts = incrementLoginAttempts(credentials.lineUsername);
+        logSecurityEvent('login_failed', credentials.lineUsername, `PIN認証失敗 (試行回数: ${attempts})`);
         setLoginAttempts(attempts);
         
         if (attempts >= maxAttempts) {
           lockAccount(credentials.lineUsername);
+          logSecurityEvent('account_locked', credentials.lineUsername, 'ログイン試行回数上限によりアカウントロック');
           setStep('locked');
         } else {
           const remainingAttempts = maxAttempts - attempts;
@@ -203,6 +207,7 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
         const credentials = getUserCredentials();
         if (credentials) {
           resetLoginAttempts(credentials.lineUsername);
+          logSecurityEvent('security_question_used', credentials.lineUsername, '秘密の質問による復旧成功');
           setLoginAttempts(0);
           setStep('pin');
           setErrors({});
