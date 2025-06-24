@@ -3,7 +3,9 @@ import { Shield, AlertTriangle, Activity, TrendingUp, Users, Lock, Eye, RefreshC
 import { 
   getAuthSession, 
   getUserCredentials, 
-  logoutUser,
+  logoutUser, 
+  logSecurityEvent,
+  getCurrentUser,
   getLoginAttempts, 
   isAccountLocked,
   STORAGE_KEYS

@@ -119,9 +119,6 @@ const DeviceAuthRegistration: React.FC<DeviceAuthRegistrationProps> = ({
       if (!deviceInfo) {
         throw new Error('デバイス情報が生成されていません');
       }
-      if (!deviceInfo) {
-        throw new Error('デバイス情報が生成されていません');
-      }
       saveDeviceFingerprint(deviceInfo);
 
       // 2. ユーザー認証情報を保存
@@ -129,39 +126,6 @@ const DeviceAuthRegistration: React.FC<DeviceAuthRegistrationProps> = ({
         formData.lineUsername,
         formData.pinCode,
         deviceInfo.id
-      );
-
-      // 3. 秘密の質問を保存
-      saveSecurityQuestions(securityQuestions);
-
-      // 同意履歴を更新（既に同意履歴は記録済みなので、ユーザー名のみ更新）
-      try {
-        const existingHistories = localStorage.getItem('consent_histories');
-        if (existingHistories) {
-          const histories = JSON.parse(existingHistories);
-          if (histories.length > 0) {
-            // 最新の履歴のユーザー名を更新
-            const latestHistory = histories[histories.length - 1];
-            if (latestHistory.line_username.startsWith('new_user_')) {
-              latestHistory.line_username = formData.lineUsername;
-              localStorage.setItem('consent_histories', JSON.stringify(histories));
-            }
-          }
-        }
-      } catch (error) {
-        console.error('同意履歴更新エラー:', error);
-      }
-
-      // デバイス認証を有効化
-      localStorage.setItem('device_auth_enabled', 'true');
-
-      // セキュリティイベントをログ
-      try {
-        logSecurityEvent('device_registered', formData.lineUsername, 'デバイス認証システムに新規登録');
-      } catch (error) {
-        console.error('セキュリティログ記録エラー:', error);
-      }
-
       // 2秒後に登録完了を通知
       setTimeout(() => {
         onRegistrationComplete(formData.lineUsername);

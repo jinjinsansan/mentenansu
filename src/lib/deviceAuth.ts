@@ -245,75 +245,6 @@ export const clearAuthSession = (): void => {
   } catch (error) {
     console.error('セキュリティログ記録エラー:', error);
   }
-  try {
-    const user = getCurrentUser();
-    if (user) {
-      logSecurityEvent('logout', user.lineUsername, 'ユーザーがログアウトしました');
-    }
-  } catch (error) {
-    console.error('セキュリティログ記録エラー:', error);
-  }
-};
-
-// セキュリティイベントログ
-export const logSecurityEvent = (type: string, username: string, details: string): void => {
-  try {
-    const events = getSecurityEvents();
-    const newEvent = {
-      id: Date.now().toString(),
-      type,
-      username,
-      timestamp: new Date().toISOString(),
-      details
-    };
-    
-    events.push(newEvent);
-    
-    // 最新100件のみ保持
-    const recentEvents = events.slice(-100);
-    localStorage.setItem('security_events', JSON.stringify(recentEvents));
-  } catch (error) {
-    console.error('セキュリティイベントログ記録エラー:', error);
-  }
-};
-
-export const getSecurityEvents = (): any[] => {
-  try {
-    const events = localStorage.getItem('security_events');
-    return events ? JSON.parse(events) : [];
-  } catch (error) {
-    console.error('セキュリティイベントログ取得エラー:', error);
-    return [];
-  }
-};
-
-// セキュリティ統計
-export const getSecurityStats = () => {
-  try {
-    const credentials = getUserCredentials();
-    const session = getAuthSession();
-    const events = getSecurityEvents();
-    const today = new Date().toISOString().split('T')[0];
-    
-    return {
-      totalUsers: credentials ? 1 : 0,
-      activeUsers: session ? 1 : 0,
-      lockedUsers: credentials && isAccountLocked(credentials.lineUsername) ? 1 : 0,
-      todayLogins: events.filter(e => e.type === 'login_success' && e.timestamp.startsWith(today)).length,
-      failedAttempts: credentials ? getLoginAttempts(credentials.lineUsername) : 0,
-      totalEvents: events.length
-    };
-  } catch (error) {
-    console.error('セキュリティ統計取得エラー:', error);
-    return {
-      totalUsers: 0,
-      activeUsers: 0,
-      lockedUsers: 0,
-      todayLogins: 0,
-      failedAttempts: 0,
-      totalEvents: 0
-    };
-  }
 };
 
 // セキュリティイベントログ
@@ -443,25 +374,6 @@ export const getSecurityQuestions = (): SecurityQuestion[] => {
   } catch {
     return [];
   }
-};
-
-// 認証状態の確認
-export const isAuthenticated = (): boolean => {
-  const session = getAuthSession();
-  return session !== null && session.isVerified;
-};
-
-// 現在のユーザー情報取得
-export const getCurrentUser = (): { lineUsername: string; deviceId: string } | null => {
-  const session = getAuthSession();
-  if (!session) return null;
-  
-  return {
-    lineUsername: session.lineUsername,
-    deviceId: session.deviceId
-  };
-};
-
 // ログアウト処理
 export const logoutUser = (): void => {
   const user = getCurrentUser();

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, Filter, X, Eye, Edit3, Trash2, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getCurrentUser } from '../lib/deviceAuth';
-import { getCurrentUser } from '../lib/deviceAuth';
 
 interface JournalEntry {
   id: string;
@@ -830,8 +829,6 @@ const DiarySearchPage: React.FC = () => {
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           <span className="text-green-800 font-jp-medium text-sm">
-            {currentUser?.lineUsername || 'ゲスト'}のデータ
-          </span>
             {currentUser?.lineUsername || 'ゲスト'}のデータ
           </span>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSupabase } from './useSupabase';
 import { userService, syncService, consentService } from '../lib/supabase';
-import { getCurrentUser, logSecurityEvent } from '../lib/deviceAuth';
+import { logSecurityEvent } from '../lib/deviceAuth';
 
 interface AutoSyncStatus {
   isAutoSyncEnabled: boolean;
@@ -42,7 +42,7 @@ export const useAutoSync = () => {
     if (isConnected && !hasInitializedRef.current) {
       hasInitializedRef.current = true;
       const lineUsername = localStorage.getItem('line-username');
-      if (lineUsername) {
+      if (lineUsername) { 
         handleAutoInitialization(lineUsername);
       }
     }
@@ -50,6 +50,7 @@ export const useAutoSync = () => {
 
   // 自動初期化処理
   const handleAutoInitialization = async (lineUsername: string) => {
+    setStatus(prev => ({ ...prev, syncInProgress: true, syncError: null }));
     try {
       let user = await userService.getUserByUsername(lineUsername);
       
@@ -65,9 +66,7 @@ export const useAutoSync = () => {
       }
       
       if (!user) {
-        if (import.meta.env.DEV) {
-          console.log('ユーザーが存在しないため、自動作成します');
-        }
+        console.log('ユーザーが存在しないため、自動作成します');
         
         try {
           try {
@@ -75,7 +74,7 @@ export const useAutoSync = () => {
           } catch (logError) {
             console.error('セキュリティログ記録エラー:', logError);
           }
-        } catch (logError) {
+        } catch (logError) { 
           console.error('セキュリティログ記録エラー:', logError);
         }
         
@@ -84,7 +83,7 @@ export const useAutoSync = () => {
         if (user) {
           setStatus(prev => ({ ...prev, userCreated: true }));
           // ユーザー作成後、アプリの状態を更新
-          if (initializeUser) {
+          if (initializeUser) { 
             await initializeUser(lineUsername); 
           }
         }
@@ -93,7 +92,7 @@ export const useAutoSync = () => {
       }
 
       // 2. 自動同期が有効な場合のみデータ同期
-      if (status.isAutoSyncEnabled && user) {
+      if (status.isAutoSyncEnabled && user) { 
         await performAutoSync(user.id);
       }
     } catch (error) {
@@ -119,7 +118,7 @@ export const useAutoSync = () => {
       // 日記データの同期
       if (localEntries) {
         const entries = JSON.parse(localEntries);
-        if (entries.length > 0) {
+        if (entries.length > 0) { 
           await syncService.migrateLocalData(userId);
           syncPerformed = true;
           if (import.meta.env.DEV) {
@@ -131,7 +130,7 @@ export const useAutoSync = () => {
       // 同意履歴の同期
       if (localConsents) {
         const consents = JSON.parse(localConsents);
-        if (consents.length > 0) {
+        if (consents.length > 0) { 
           await syncService.syncConsentHistories();
           syncPerformed = true;
           if (import.meta.env.DEV) {
@@ -142,7 +141,7 @@ export const useAutoSync = () => {
 
       if (syncPerformed) {
         const now = new Date().toISOString();
-        localStorage.setItem('last_sync_time', now);
+        localStorage.setItem('last_sync_time', now); 
         
         try {
           logSecurityEvent('auto_sync_completed', userId, '自動同期が完了しました');
@@ -165,7 +164,7 @@ export const useAutoSync = () => {
   // 自動同期の有効/無効切り替え
   const toggleAutoSync = (enabled: boolean) => {
     localStorage.setItem('auto_sync_enabled', enabled.toString());
-    
+
     try {
       const user = getCurrentUser();
       try {
@@ -174,7 +173,7 @@ export const useAutoSync = () => {
         console.error('セキュリティログ記録エラー:', error);
       }
     } catch (error) {
-      console.error('セキュリティログ記録エラー:', error);
+      console.error('ユーザー取得エラー:', error);
     }
     
     setStatus(prev => ({ ...prev, isAutoSyncEnabled: enabled }));
@@ -194,7 +193,7 @@ export const useAutoSync = () => {
     setStatus(prev => ({ ...prev, syncInProgress: true, syncError: null }));
     
     try {
-      await performAutoSync(currentUser.id);
+      await performAutoSync(currentUser.id); 
       
       try {
         const user = getCurrentUser();
@@ -203,7 +202,7 @@ export const useAutoSync = () => {
         } catch (error) {
           console.error('セキュリティログ記録エラー:', error);
         }
-      } catch (error) {
+      } catch (error) { 
         console.error('セキュリティログ記録エラー:', error);
       }
       
@@ -213,7 +212,7 @@ export const useAutoSync = () => {
   };
 
   // 定期同期の設定（5分間隔）
-  useEffect(() => {    
+  useEffect(() => {
     if (status.isAutoSyncEnabled && isConnected && currentUser) {
       // 前回のタイマーをクリア
       if (syncTimeoutRef.current) {

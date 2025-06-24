@@ -108,11 +108,6 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
       } catch (error) {
         console.error('セキュリティログ記録エラー:', error);
       }
-      try {
-        logSecurityEvent('login_validation_failed', formData.lineUsername || 'unknown', 'PIN番号の形式が不正です');
-      } catch (error) {
-        console.error('セキュリティログ記録エラー:', error);
-      }
       return;
     }
 
@@ -136,39 +131,12 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
         return;
       }
 
-      // ロック状態を再確認
-      if (isAccountLocked(credentials.lineUsername)) {
-        try {
-          logSecurityEvent('login_attempt_locked', credentials.lineUsername, 'ロック中のアカウントへのログイン試行');
-        } catch (error) {
-          console.error('セキュリティログ記録エラー:', error);
-        }
-        setStep('locked');
-        return;
-      }
-
       // PIN番号をハッシュ化して比較
       const hashedPin = await hashPinCode(formData.pinCode, credentials.salt);
-      
-      // ロック状態を再確認
-      if (isAccountLocked(credentials.lineUsername)) {
-        try {
-          logSecurityEvent('login_attempt_locked', credentials.lineUsername, 'ロック中のアカウントへのログイン試行');
-        } catch (error) {
-          console.error('セキュリティログ記録エラー:', error);
-        }
-        setStep('locked');
-        return;
-      }
       
       if (hashedPin === credentials.pinCodeHash) {
         // ログイン成功
         resetLoginAttempts(credentials.lineUsername);
-        try {
-          logSecurityEvent('login_success', credentials.lineUsername, 'デバイス認証によるログイン成功');
-        } catch (error) {
-          console.error('セキュリティログ記録エラー:', error);
-        }
         try {
           logSecurityEvent('login_success', credentials.lineUsername, 'デバイス認証によるログイン成功');
         } catch (error) {
@@ -189,20 +157,10 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
         } catch (error) {
           console.error('セキュリティログ記録エラー:', error);
         }
-        try {
-          logSecurityEvent('login_failed', credentials.lineUsername, `PIN認証に失敗しました (試行回数: ${attempts})`);
-        } catch (error) {
-          console.error('セキュリティログ記録エラー:', error);
-        }
         setLoginAttempts(attempts);
         
         if (attempts >= maxAttempts) {
           lockAccount(credentials.lineUsername);
-          try {
-            logSecurityEvent('account_locked', credentials.lineUsername, 'ログイン試行回数上限によりアカウントロック');
-          } catch (error) {
-            console.error('セキュリティログ記録エラー:', error);
-          }
           try {
             logSecurityEvent('account_locked', credentials.lineUsername, 'ログイン試行回数上限によりアカウントロック');
           } catch (error) {
@@ -279,11 +237,6 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
         const credentials = getUserCredentials();
         if (credentials) { 
           resetLoginAttempts(credentials.lineUsername);
-          try {
-            logSecurityEvent('security_question_success', credentials.lineUsername, '秘密の質問による復旧に成功しました');
-          } catch (error) {
-            console.error('セキュリティログ記録エラー:', error);
-          }
           try {
             logSecurityEvent('security_question_success', credentials.lineUsername, '秘密の質問による復旧に成功しました');
           } catch (error) {

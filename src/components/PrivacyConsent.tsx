@@ -36,14 +36,6 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
       } catch (error) {
         console.error('セキュリティログ記録エラー:', error);
       }
-      
-      // セキュリティイベントをログ
-      try {
-        logSecurityEvent('privacy_consent_accepted', consentRecord.line_username, 'プライバシーポリシーに同意');
-      } catch (error) {
-        console.error('セキュリティログ記録エラー:', error);
-      }
-      
       onConsent(true);
     }
   };
@@ -71,14 +63,6 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
     } catch (error) {
       console.error('セキュリティログ記録エラー:', error);
     }
-    
-    // セキュリティイベントをログ
-    try {
-      logSecurityEvent('privacy_consent_rejected', consentRecord.line_username, 'プライバシーポリシーを拒否');
-    } catch (error) {
-      console.error('セキュリティログ記録エラー:', error);
-    }
-    
     onConsent(false);
   };
 
