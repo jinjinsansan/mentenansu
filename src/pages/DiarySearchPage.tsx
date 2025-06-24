@@ -14,7 +14,6 @@ interface JournalEntry {
 
 const DiarySearchPage: React.FC = () => {
   const currentUser = getCurrentUser();
-  const currentUser = getCurrentUser();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [searchType, setSearchType] = useState<'date' | 'keyword' | 'emotion'>('keyword');
   const [searchValue, setSearchValue] = useState('');
