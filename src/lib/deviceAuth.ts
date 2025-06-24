@@ -368,8 +368,14 @@ export const getCurrentUser = (): { lineUsername: string; deviceId: string } | n
 // ログアウト処理
 export const logoutUser = (): void => {
   const user = getCurrentUser();
-  if (user) {
-    logSecurityEvent('logout', user.lineUsername, 'ユーザーが明示的にログアウトしました');
+  try {
+    if (user) {
+      logSecurityEvent('logout', user.lineUsername, 'ユーザーが明示的にログアウトしました');
+    }
+    clearAuthSession();
+  } catch (error) {
+    console.error('ログアウト処理エラー:', error);
+    // エラーが発生しても確実にセッションをクリア
+    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
   }
-  clearAuthSession();
 };
