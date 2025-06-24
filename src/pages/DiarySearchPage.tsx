@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentUser } from '../lib/deviceAuth'; 
+import { Search, Calendar, Filter, X, Eye, Edit3, Trash2, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getCurrentUser } from '../lib/deviceAuth';
 
 interface JournalEntry {
   id: string;
