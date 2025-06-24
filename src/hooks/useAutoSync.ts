@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSupabase } from './useSupabase';
 import { userService, syncService, consentService } from '../lib/supabase';
 import { getAuthSession, logSecurityEvent } from '../lib/deviceAuth';
+import { getAuthSession, logSecurityEvent } from '../lib/deviceAuth';
 
 interface AutoSyncStatus {
   isAutoSyncEnabled: boolean;
@@ -41,6 +42,7 @@ export const useAutoSync = () => {
   useEffect(() => {
     const session = getAuthSession();
     if (isConnected && !hasInitializedRef.current && session) {
+    if (isConnected && !hasInitializedRef.current && session) {
       hasInitializedRef.current = true;
       handleAutoInitialization(session.lineUsername);
     }
@@ -48,7 +50,6 @@ export const useAutoSync = () => {
 
   // 自動初期化処理
   const handleAutoInitialization = async (lineUsername: string) => {
-    if (!lineUsername || !isConnected) return;
     
     setStatus(prev => ({ ...prev, syncInProgress: true, syncError: null }));
     
@@ -60,6 +61,11 @@ export const useAutoSync = () => {
         if (import.meta.env.DEV) {
           console.log('ユーザーが存在しないため、自動作成します');
         }
+        try {
+          logSecurityEvent('auto_sync_create_user', lineUsername, 'ユーザーが存在しないため、自動作成します');
+        } catch (error) {
+          console.error('セキュリティログエラー:', error);
+        }
         logSecurityEvent('auto_sync_create_user', lineUsername, 'ユーザーが存在しないため、自動作成します');
         user = await userService.createUser(lineUsername);
         
@@ -67,6 +73,8 @@ export const useAutoSync = () => {
           setStatus(prev => ({ ...prev, userCreated: true }));
           // ユーザー作成後、アプリの状態を更新
           if (initializeUser) {
+            await initializeUser(lineUsername);
+          }
             await initializeUser(lineUsername);
           }
         }
@@ -125,6 +133,11 @@ export const useAutoSync = () => {
       if (syncPerformed) {
         const now = new Date().toISOString();
         localStorage.setItem('last_sync_time', now);
+        try {
+          logSecurityEvent('auto_sync_completed', userId, '自動同期が完了しました');
+        } catch (error) {
+          console.error('セキュリティログエラー:', error);
+        }
         logSecurityEvent('auto_sync_completed', userId, '自動同期が完了しました');
         setStatus(prev => ({ ...prev, lastSyncTime: now }));
       }
@@ -146,6 +159,11 @@ export const useAutoSync = () => {
     } catch (error) {
       console.error('セキュリティログエラー:', error);
     }
+    try {
+      logSecurityEvent('auto_sync_toggled', 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
+    } catch (error) {
+      console.error('セキュリティログエラー:', error);
+    }
     setStatus(prev => ({ ...prev, isAutoSyncEnabled: enabled }));
     
     if (enabled && isConnected && currentUser) {
@@ -159,11 +177,16 @@ export const useAutoSync = () => {
     if (!isConnected || !currentUser) {
       throw new Error('Supabaseに接続されていないか、ユーザーが設定されていません');
     }
-
+    
     setStatus(prev => ({ ...prev, syncInProgress: true, syncError: null }));
     
     try {
       await performAutoSync(currentUser.id);
+      try {
+        logSecurityEvent('manual_sync_triggered', currentUser.id, '手動同期が実行されました');
+      } catch (error) {
+        console.error('セキュリティログエラー:', error);
+      }
       try {
         logSecurityEvent('manual_sync_triggered', currentUser.id, '手動同期が実行されました');
       } catch (error) {
