@@ -4,6 +4,7 @@ import HybridAuthFlow from '../components/HybridAuthFlow';
 import { hybridAuth, type UserProfile } from '../lib/hybridAuth';
 import HybridAuthSettings from '../components/HybridAuthSettings';
 import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
+import { useNavigate } from '../hooks/useNavigate';
 
 const HybridAuthPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +13,7 @@ const HybridAuthPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const { isMaintenanceMode, config: maintenanceConfig } = useMaintenanceStatus();
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuthStatus();
@@ -34,6 +36,14 @@ const HybridAuthPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 認証をスキップして通常モードに戻る
+  const handleSkipAuth = () => {
+    // ハイブリッド認証を無効化
+    localStorage.setItem('hybrid_auth_enabled', 'false');
+    // ユーザー名入力画面に移動
+    navigate('username-input');
   };
 
   const handleAuthSuccess = (profile: UserProfile) => {
@@ -100,10 +110,23 @@ const HybridAuthPage: React.FC = () => {
 
   if (showAuthFlow) {
     return (
-      <HybridAuthFlow
-        onAuthSuccess={handleAuthSuccess}
-        onAuthSkip={import.meta.env.PROD ? undefined : handleAuthSkip}
-      />
+      <div>
+        <HybridAuthFlow
+          onAuthSuccess={handleAuthSuccess}
+          onAuthSkip={import.meta.env.PROD ? undefined : handleAuthSkip}
+        />
+        
+        {/* 通常モードに戻るボタン */}
+        <div className="fixed bottom-4 right-4">
+          <button
+            onClick={handleSkipAuth}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-jp-medium text-sm transition-colors shadow-md"
+          >
+            通常モードに戻る
+          </button>
+        </div>
+      </div>
+    );
     );
   }
 

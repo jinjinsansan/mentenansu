@@ -52,6 +52,7 @@ const App: React.FC = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
   const [isHybridAuth, setIsHybridAuth] = useState(false);
+  const [navigateEvent, setNavigateEvent] = useState<string | null>(null);
   const { isMaintenanceMode, config: maintenanceConfig, loading: maintenanceLoading } = useMaintenanceStatus();
   const { isConnected, currentUser, initializeUser } = useSupabase();
 
@@ -71,6 +72,20 @@ const App: React.FC = () => {
   useEffect(() => {
     loadEntries();
     checkAuthMethod();
+  }, []);
+
+  // ナビゲーションイベントのリスナー
+  useEffect(() => {
+    const handleNavigate = (event: CustomEvent<{ page: string }>) => {
+      setCurrentPage(event.detail.page);
+      setNavigateEvent(event.detail.page);
+    };
+
+    window.addEventListener('navigate', handleNavigate as EventListener);
+    
+    return () => {
+      window.removeEventListener('navigate', handleNavigate as EventListener);
+    };
   }, []);
 
   const checkAuthMethod = () => {
@@ -1017,6 +1032,12 @@ const App: React.FC = () => {
   }
 
   // ハイブリッド認証が有効な場合
+  if (isHybridAuth && navigateEvent) {
+    // ナビゲーションイベントがあれば、ハイブリッド認証をスキップ
+    setIsHybridAuth(false);
+    setNavigateEvent(null);
+  }
+
   if (isHybridAuth) {
     return <HybridAuthPage />;
   }
