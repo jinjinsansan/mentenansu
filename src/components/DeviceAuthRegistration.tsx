@@ -3,7 +3,9 @@ import { Shield, Eye, EyeOff, Lock, Smartphone, HelpCircle, CheckCircle, AlertTr
 import { 
   generateDeviceFingerprint, 
   saveDeviceFingerprint, 
-  saveUserCredentials,
+  saveUserCredentials, 
+  saveSecurityQuestions,
+  logSecurityEvent,
   SECURITY_QUESTIONS,
   type SecurityQuestion 
 } from '../lib/deviceAuth';
