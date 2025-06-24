@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Eye, X, User, Calendar, AlertTriangle, UserCheck, Edit3, Save, MessageCircle, ChevronLeft, ChevronRight, Database, Shield, Trash2 } from 'lucide-react';
 import CounselorComment from './CounselorComment';
 import CounselorManagement from './CounselorManagement';
 import MaintenanceController from './MaintenanceController';
