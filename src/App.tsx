@@ -1202,7 +1202,7 @@ const App: React.FC = () => {
                     <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                     <span>Supabase: {isConnected ? '接続済み' : 'ローカルモード'}</span>
                     {supabaseUser && (
-                      <span className="text-xs">({currentUser.line_username})</span>
+                      <span className="text-xs">({supabaseUser.line_username})</span>
                     )}
                   </div>
                   {currentCounselor && (

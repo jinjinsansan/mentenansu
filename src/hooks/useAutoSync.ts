@@ -44,7 +44,7 @@ export const useAutoSync = () => {
       hasInitializedRef.current = true;
       handleAutoInitialization(session.lineUsername);
     }
-  }, [isConnected, getAuthSession]);
+  }, [isConnected]);
 
   // 自動初期化処理
   const handleAutoInitialization = async (lineUsername: string) => {
