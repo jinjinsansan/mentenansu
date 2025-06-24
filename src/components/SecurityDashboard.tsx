@@ -143,9 +143,22 @@ const SecurityDashboard: React.FC = () => {
   };
 
   const resolveAlert = (alertId: string) => {
-    setAlerts(prev => prev.map(alert =>
-      alert.id === alertId ? { ...alert, resolved: true } : alert
-    ));
+    try {
+      setAlerts(prev => prev.map(alert =>
+        alert.id === alertId ? { ...alert, resolved: true } : alert
+      ));
+      
+      // セキュリティイベントをログ
+      const alert = alerts.find(a => a.id === alertId);
+      if (alert) {
+        const user = getCurrentUser();
+        if (user) {
+          logSecurityEvent('alert_resolved', user.lineUsername, `アラート「${alert.title}」が解決されました`);
+        }
+      }
+    } catch (error) {
+      console.error('アラート解決エラー:', error);
+    }
   };
 
   const getAlertIcon = (type: string) => {

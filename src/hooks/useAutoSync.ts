@@ -53,13 +53,28 @@ export const useAutoSync = () => {
     try {
       let user = await userService.getUserByUsername(lineUsername);
       
+      // セキュリティイベントをログ
+      try {
+        if (user) {
+          logSecurityEvent('auto_sync_user_found', lineUsername, 'ユーザーが見つかりました');
+        } else {
+          logSecurityEvent('auto_sync_user_not_found', lineUsername, 'ユーザーが見つかりません');
+        }
+      } catch (error) {
+        console.error('セキュリティログ記録エラー:', error);
+      }
+      
       if (!user) {
         if (import.meta.env.DEV) {
           console.log('ユーザーが存在しないため、自動作成します');
         }
         
         try {
-          logSecurityEvent('auto_sync_create_user', lineUsername, 'ユーザーが存在しないため、自動作成します');
+          try {
+            logSecurityEvent('auto_sync_create_user', lineUsername, 'ユーザーが存在しないため、自動作成します');
+          } catch (logError) {
+            console.error('セキュリティログ記録エラー:', logError);
+          }
         } catch (logError) {
           console.error('セキュリティログ記録エラー:', logError);
         }
@@ -134,6 +149,10 @@ export const useAutoSync = () => {
         } catch (error) {
           console.error('セキュリティログ記録エラー:', error);
         }
+          logSecurityEvent('auto_sync_completed', userId, '自動同期が完了しました');
+        } catch (error) {
+          console.error('セキュリティログ記録エラー:', error);
+        }
         
         setStatus(prev => ({ ...prev, lastSyncTime: now }));
       }
@@ -153,7 +172,11 @@ export const useAutoSync = () => {
     
     try {
       const user = getCurrentUser();
-      logSecurityEvent('auto_sync_toggled', user?.lineUsername || 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
+      try {
+        logSecurityEvent('auto_sync_toggled', user?.lineUsername || 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
+      } catch (error) {
+        console.error('セキュリティログ記録エラー:', error);
+      }
     } catch (error) {
       console.error('セキュリティログ記録エラー:', error);
     }
@@ -179,7 +202,11 @@ export const useAutoSync = () => {
       
       try {
         const user = getCurrentUser();
-        logSecurityEvent('manual_sync_triggered', user?.lineUsername || currentUser.id, '手動同期が実行されました');
+        try {
+          logSecurityEvent('manual_sync_triggered', user?.lineUsername || currentUser.id, '手動同期が実行されました');
+        } catch (error) {
+          console.error('セキュリティログ記録エラー:', error);
+        }
       } catch (error) {
         console.error('セキュリティログ記録エラー:', error);
       }

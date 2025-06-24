@@ -172,16 +172,20 @@ const DeviceAuthManagement: React.FC = () => {
 
   const addSecurityEvent = (type: string, username: string, details: string) => {
     const newEvent: SecurityEvent = {
-      id: Date.now().toString(),
-      type: type as any,
-      username,
-      timestamp: new Date().toISOString(),
-      details
+      id: Date.now().toString(), 
+      type: type as any, 
+      username, 
+      timestamp: new Date().toISOString(), 
+      details 
     };
     
-    const events = [...securityEvents, newEvent];
-    setSecurityEvents(events);
-    localStorage.setItem('security_events', JSON.stringify(events));
+    try {
+      const events = [...securityEvents, newEvent];
+      setSecurityEvents(events);
+      localStorage.setItem('security_events', JSON.stringify(events));
+    } catch (error) {
+      console.error('セキュリティイベント追加エラー:', error);
+    }
   };
 
   const exportData = () => {

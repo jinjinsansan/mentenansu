@@ -5,7 +5,8 @@ import CounselorManagement from './CounselorManagement';
 import MaintenanceController from './MaintenanceController';
 import DeviceAuthManagement from './DeviceAuthManagement';
 import SecurityDashboard from './SecurityDashboard';
-import { diaryService } from '../lib/supabase';
+import { diaryService } from '../lib/supabase'; 
+import { getCurrentUser, logSecurityEvent } from '../lib/deviceAuth';
 
 interface JournalEntry {
   id: string;
@@ -41,6 +42,7 @@ const AdminPanel: React.FC = () => {
   const [editingMemo, setEditingMemo] = useState<string | null>(null);
   const [memoText, setMemoText] = useState('');
   const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'maintenance' | 'device-auth' | 'security'>('diary');
+  const currentUser = getCurrentUser();
 
   const emotions = [
     '恐怖', '悲しみ', '怒り', '悔しい', '無価値感', '罪悪感', '寂しさ', '恥ずかしさ'
@@ -63,6 +65,15 @@ const AdminPanel: React.FC = () => {
 
   useEffect(() => {
     loadEntries();
+    
+    // セキュリティイベントをログ
+    try {
+      if (currentUser) {
+        logSecurityEvent('admin_panel_access', currentUser.lineUsername, '管理画面にアクセスしました');
+      }
+    } catch (error) {
+      console.error('セキュリティログ記録エラー:', error);
+    }
   }, []);
 
   useEffect(() => {

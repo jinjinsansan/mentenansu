@@ -35,7 +35,11 @@ export const useSupabase = () => {
         // 既存ユーザーの確認
         const session = getAuthSession();
         if (session) {
-          await initializeUser(session.lineUsername);
+          try {
+            await initializeUser(session.lineUsername);
+          } catch (error) {
+            console.error('ユーザー初期化エラー:', error);
+          }
         }
       }
     } catch (error) {
@@ -55,9 +59,17 @@ export const useSupabase = () => {
       
       // セキュリティイベントをログ
       if (user) {
-        logSecurityEvent('supabase_user_found', lineUsername, 'Supabaseユーザーが見つかりました');
+        try {
+          logSecurityEvent('supabase_user_found', lineUsername, 'Supabaseユーザーが見つかりました');
+        } catch (error) {
+          console.error('セキュリティログ記録エラー:', error);
+        }
       } else {
-        logSecurityEvent('supabase_user_not_found', lineUsername, 'Supabaseユーザーが見つかりません');
+        try {
+          logSecurityEvent('supabase_user_not_found', lineUsername, 'Supabaseユーザーが見つかりません');
+        } catch (error) {
+          console.error('セキュリティログ記録エラー:', error);
+        }
       }
       
       if (!user) {
@@ -65,7 +77,11 @@ export const useSupabase = () => {
         user = await userService.createUser(lineUsername);
         
         if (user) {
-          logSecurityEvent('supabase_user_created', lineUsername, 'Supabaseユーザーを作成しました');
+          try {
+            logSecurityEvent('supabase_user_created', lineUsername, 'Supabaseユーザーを作成しました');
+          } catch (error) {
+            console.error('セキュリティログ記録エラー:', error);
+          }
           // ローカルデータを移行
           await syncService.migrateLocalData(user.id);
         }
