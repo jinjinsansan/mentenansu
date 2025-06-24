@@ -92,7 +92,137 @@ export interface ConsentHistory {
   created_at: string;
 }
 
+export interface CounselorComment {
+  id: string;
+  diary_entry_id: string;
+  counselor_id: string;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+  counselor?: {
+    name: string;
+    email: string;
+  };
+}
+
+export interface CounselorComment {
+  id: string;
+  diary_entry_id: string;
+  counselor_id: string;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+  counselor?: {
+    name: string;
+    email: string;
+  };
+}
+
 // ユーザー管理関数
+        }])
+        .select(`
+          *,
+          counselor:counselors(name, email)
+        `)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('コメント作成エラー:', error);
+      return null;
+    }
+  },
+
+  async getCommentsByDiaryEntry(diaryEntryId: string): Promise<CounselorComment[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('counselor_comments')
+        .select(`
+          *,
+          counselor:counselors(name, email)
+        `)
+        .eq('diary_entry_id', diaryEntryId)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('コメント取得エラー:', error);
+      return [];
+    }
+  },
+
+  async updateComment(commentId: string, comment: string): Promise<CounselorComment | null> {
+    if (!supabase) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('counselor_comments')
+        .update({ comment: comment.trim() })
+        .eq('id', commentId)
+        .select(`
+          *,
+          counselor:counselors(name, email)
+        `)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('コメント更新エラー:', error);
+      return null;
+    }
+  },
+
+  async deleteComment(commentId: string): Promise<boolean> {
+    if (!supabase) return false;
+    
+    try {
+      const { error } = await supabase
+        .from('counselor_comments')
+        .delete()
+        .eq('id', commentId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('コメント削除エラー:', error);
+      return false;
+    }
+  },
+
+  // 管理画面用：全てのコメントを取得
+  async getAllComments(limit = 100, offset = 0): Promise<CounselorComment[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('counselor_comments')
+        .select(`
+          *,
+          counselor:counselors(name, email),
+          diary_entry:diary_entries(
+            date,
+            emotion,
+            event,
+            user:users(line_username)
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('全コメント取得エラー:', error);
+      return [];
+    }
+  }
+};
+
 export const userService = {
   async createUser(lineUsername: string): Promise<User | null> {
     if (!supabase) return null;
