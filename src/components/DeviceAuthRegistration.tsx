@@ -6,7 +6,6 @@ import {
   saveUserCredentials, 
   saveSecurityQuestions,
   logSecurityEvent,
-  logSecurityEvent,
   SECURITY_QUESTIONS,
   type SecurityQuestion 
 } from '../lib/deviceAuth';
@@ -134,8 +133,8 @@ const DeviceAuthRegistration: React.FC<DeviceAuthRegistrationProps> = ({
       // セキュリティイベントをログ
       logSecurityEvent('device_registered', formData.lineUsername, 'デバイス認証システムに新規登録');
 
-      // 4. セキュリティイベントをログ
-
+      // セキュリティイベントをログ
+      logSecurityEvent('device_registered', formData.lineUsername, 'デバイス認証システムに新規登録');
       // 2秒後に登録完了を通知
       setTimeout(() => {
         onRegistrationComplete(formData.lineUsername);
