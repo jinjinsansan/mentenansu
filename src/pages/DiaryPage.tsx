@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
-import LineAuthGuard from '../components/LineAuthGuard';
-import { checkAuthStatus } from '../lib/lineAuth';
+import { getCurrentUser } from '../lib/deviceAuth';
 
 const DiaryPage: React.FC = () => {
-  const [showLineAuth, setShowLineAuth] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState<any>(null);
+  const currentUser = getCurrentUser();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     event: '',
@@ -182,7 +180,8 @@ const DiaryPage: React.FC = () => {
   };
 
   const handleShare = () => {
-    const shareText = `今日の感情日記を書きました 📝\n\n感情: ${formData.emotion}\n\n#かんじょうにっき #感情日記 #自己肯定感\n\n${window.location.origin}`;
+    const username = currentUser?.lineUsername || 'ユーザー';
+    const shareText = `${username}の今日の感情日記 📝\n\n感情: ${formData.emotion}\n\n#かんじょうにっき #感情日記 #自己肯定感\n\n${window.location.origin}`;
     
     if (navigator.share) {
       // Web Share API が利用可能な場合

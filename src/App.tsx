@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Search, TrendingUp, Plus, Edit3, Trash2, ChevronLeft, ChevronRight, Menu, X, BookOpen, Play, ArrowRight, Home, Heart, Share2, Shield, Settings, MessageCircle } from 'lucide-react';
 import PrivacyConsent from './components/PrivacyConsent';
+import DeviceAuthLogin from './components/DeviceAuthLogin';
+import DeviceAuthRegistration from './components/DeviceAuthRegistration';
 import MaintenanceMode from './components/MaintenanceMode';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
+import { isAuthenticated, getCurrentUser, getAuthSession } from './lib/deviceAuth';
 import AdminPanel from './components/AdminPanel';
 import DataMigration from './components/DataMigration';
 import DiaryPage from './pages/DiaryPage';
@@ -35,7 +38,7 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showPrivacyConsent, setShowPrivacyConsent] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [lineUsername, setLineUsername] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ lineUsername: string; deviceId: string } | null>(null);
   const [emotionPeriod, setEmotionPeriod] = useState<'all' | 'month' | 'week'>('all');
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -47,9 +50,13 @@ const App: React.FC = () => {
   });
   const [currentCounselor, setCurrentCounselor] = useState<string | null>(null);
 
+  // デバイス認証関連の状態
+  const [authState, setAuthState] = useState<'checking' | 'login' | 'register' | 'authenticated'>('checking');
+  const [showDeviceAuth, setShowDeviceAuth] = useState(false);
+
   const [dataLoading, setDataLoading] = useState(true);
   const { isMaintenanceMode, config: maintenanceConfig, loading: maintenanceLoading } = useMaintenanceStatus();
-  const { isConnected, currentUser, initializeUser } = useSupabase();
+  const { isConnected, currentUser: supabaseUser, initializeUser } = useSupabase();
 
   const [formData, setFormData] = useState({
     emotion: '',
@@ -66,20 +73,39 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadEntries();
+    checkAuthStatus();
   }, []);
 
-  useEffect(() => {
+  const checkAuthStatus = () => {
     const consentGiven = localStorage.getItem('privacyConsentGiven');
-    const savedUsername = localStorage.getItem('line-username');
-    if (consentGiven === 'true') {
-      setShowPrivacyConsent(false);
-      if (savedUsername) {
-        setLineUsername(savedUsername);
-        // Supabaseユーザーを初期化
-        initializeUser(savedUsername);
-      }
+    
+    if (consentGiven !== 'true') {
+      setShowPrivacyConsent(true);
+      setAuthState('checking');
+      return;
     }
-  }, []);
+    
+    setShowPrivacyConsent(false);
+    
+    // デバイス認証状態をチェック
+    if (isAuthenticated()) {
+      const user = getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+        setAuthState('authenticated');
+        setCurrentPage('how-to');
+        
+        // Supabaseユーザーを初期化
+        if (isConnected) {
+          initializeUser(user.lineUsername);
+        }
+      } else {
+        setAuthState('login');
+      }
+    } else {
+      setAuthState('login');
+    }
+  };
 
   // テストデータ生成関数
   const generateTestData = () => {
@@ -305,31 +331,45 @@ const App: React.FC = () => {
       localStorage.setItem('privacyConsentGiven', 'true');
       localStorage.setItem('privacyConsentDate', new Date().toISOString());
       setShowPrivacyConsent(false);
-      setCurrentPage('username-input');
+      
+      // プライバシー同意後、デバイス認証状態をチェック
+      if (isAuthenticated()) {
+        const user = getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
+          setAuthState('authenticated');
+          setCurrentPage('how-to');
+        } else {
+          setAuthState('login');
+        }
+      } else {
+        setAuthState('login');
+      }
     } else {
       alert('プライバシーポリシーに同意いただけない場合、サービスをご利用いただけません。');
     }
   };
 
-  const handleUsernameSubmit = (username: string) => {
-    localStorage.setItem('line-username', username);
-    setLineUsername(username);
-    // Supabaseユーザーを初期化
-    initializeUser(username);
-    setCurrentPage('how-to');
+  const handleDeviceAuthSuccess = (lineUsername: string) => {
+    const user = getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+      setAuthState('authenticated');
+      setCurrentPage('how-to');
+      
+      // Supabaseユーザーを初期化
+      if (isConnected) {
+        initializeUser(lineUsername);
+      }
+    }
   };
 
-  const handleStartApp = () => {
-    const consentGiven = localStorage.getItem('privacyConsentGiven');
-    const savedUsername = localStorage.getItem('line-username');
-    
-    if (consentGiven === 'true' && savedUsername) {
-      // 既存ユーザーは使い方ページへ
-      setCurrentPage('how-to');
-    } else {
-      // 新規ユーザーはプライバシー同意から
-      setShowPrivacyConsent(true);
-    }
+  const handleDeviceAuthRegister = () => {
+    setAuthState('register');
+  };
+
+  const handleDeviceAuthBack = () => {
+    setCurrentPage('how-to');
   };
 
   // カウンセラーアカウント情報
@@ -696,50 +736,19 @@ const App: React.FC = () => {
       return <PrivacyConsent onConsent={handlePrivacyConsent} />;
     }
 
-    if (currentPage === 'username-input') {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                <Heart className="w-8 h-8 text-blue-600" />
-              </div>
-              <h1 className="text-2xl font-jp-bold text-gray-900 mb-2">
-                ユーザー名を入力
-              </h1>
-              <p className="text-gray-600 font-jp-normal">
-                LINEのユーザー名を入力してください
-              </p>
-            </div>
-
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.target as HTMLFormElement);
-              const username = formData.get('username') as string;
-              if (username.trim()) {
-                handleUsernameSubmit(username.trim());
-              }
-            }}>
-              <div className="mb-6">
-                <input
-                  type="text"
-                  name="username"
-                  placeholder="ユーザー名を入力"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-jp-normal"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-jp-medium transition-colors shadow-md hover:shadow-lg"
-              >
-                次へ進む
-              </button>
-            </form>
-          </div>
-        </div>
-      );
+    if (authState === 'login') {
+      return <DeviceAuthLogin 
+        onLoginSuccess={handleDeviceAuthSuccess} 
+        onRegister={handleDeviceAuthRegister}
+        onBack={handleDeviceAuthBack}
+      />;
+    }
+    
+    if (authState === 'register') {
+      return <DeviceAuthRegistration 
+        onRegistrationComplete={handleDeviceAuthSuccess}
+        onBack={() => setAuthState('login')}
+      />;
     }
 
     if (currentPage === 'home') {
@@ -775,8 +784,11 @@ const App: React.FC = () => {
           <div className="text-center text-gray-800">
             {/* メインハートアイコン */}
             <div className="mb-8 relative z-10">
-              <div className="inline-flex items-center justify-center w-32 h-32 bg-white rounded-full mb-6 shadow-lg">
+              <div className="inline-flex items-center justify-center w-32 h-32 bg-white rounded-full mb-6 shadow-lg relative">
                 <Heart className="w-16 h-16 text-orange-400" fill="currentColor" />
+                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-white" />
+                </div>
               </div>
             </div>
 
@@ -792,7 +804,19 @@ const App: React.FC = () => {
 
             {/* はじめるボタン */}
             <button
-              onClick={handleStartApp}
+              onClick={() => {
+                const consentGiven = localStorage.getItem('privacyConsentGiven');
+                
+                if (consentGiven === 'true') {
+                  if (isAuthenticated()) {
+                    setCurrentPage('how-to');
+                  } else {
+                    setAuthState('login');
+                  }
+                } else {
+                  setShowPrivacyConsent(true);
+                }
+              }}
               className="bg-orange-400 hover:bg-orange-500 text-white px-8 py-4 rounded-full font-jp-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl mb-8 relative z-10"
             >
               はじめる
@@ -1002,11 +1026,11 @@ const App: React.FC = () => {
                   </button>
                   
                   {/* ユーザー名表示 */}
-                  {lineUsername && (
+                  {currentUser && (
                     <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-blue-50 rounded-full border border-blue-200">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                       <span className="text-blue-700 font-jp-medium text-sm">
-                        {lineUsername}さん
+                        {currentUser?.lineUsername}さん
                       </span>
                     </div>
                   )}
@@ -1061,11 +1085,11 @@ const App: React.FC = () => {
                 {/* モバイルメニューボタン */}
                 <div className="flex items-center space-x-3">
                   {/* モバイル用ユーザー名表示 */}
-                  {lineUsername && (
+                  {currentUser && (
                     <div className="sm:hidden flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-full border border-blue-200">
                       <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                       <span className="text-blue-700 font-jp-medium text-xs">
-                        {lineUsername}さん
+                        {currentUser.lineUsername}さん
                       </span>
                     </div>
                   )}
@@ -1177,7 +1201,7 @@ const App: React.FC = () => {
                   }`}>
                     <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                     <span>Supabase: {isConnected ? '接続済み' : 'ローカルモード'}</span>
-                    {currentUser && (
+                    {supabaseUser && (
                       <span className="text-xs">({currentUser.line_username})</span>
                     )}
                   </div>
@@ -1196,6 +1220,9 @@ const App: React.FC = () => {
       )}
 
       {(showPrivacyConsent || currentPage === 'home') && renderContent()}
+      
+      {/* デバイス認証関連のコンポーネント */}
+      {(authState === 'login' || authState === 'register') && renderContent()}
       
       {/* カウンセラーログインモーダル */}
       {renderCounselorLoginModal()}

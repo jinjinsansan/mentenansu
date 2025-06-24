@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Eye, Lock, Database, AlertTriangle, Users, Clock, MessageCircle } from 'lucide-react';
+import { logSecurityEvent } from '../lib/deviceAuth';
 
 interface PrivacyConsentProps {
   onConsent: (accepted: boolean) => void;
@@ -15,7 +16,7 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
       // 同意履歴を記録
       const consentRecord = {
         id: Date.now().toString(),
-        line_username: '', // ユーザー名入力時に更新される
+        line_username: 'new_user_' + Date.now(), // 一時的なユーザー名
         consent_given: true,
         consent_date: new Date().toISOString(),
         ip_address: 'unknown', // 実際の実装では取得可能
@@ -27,6 +28,9 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
       const histories = existingHistories ? JSON.parse(existingHistories) : [];
       histories.push(consentRecord);
       localStorage.setItem('consent_histories', JSON.stringify(histories));
+
+      // セキュリティイベントをログ
+      logSecurityEvent('privacy_consent', consentRecord.line_username, 'プライバシーポリシーに同意');
       
       onConsent(true);
     }
@@ -48,6 +52,9 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
     const histories = existingHistories ? JSON.parse(existingHistories) : [];
     histories.push(consentRecord);
     localStorage.setItem('consent_histories', JSON.stringify(histories));
+
+    // セキュリティイベントをログ
+    logSecurityEvent('privacy_consent_rejected', consentRecord.line_username, 'プライバシーポリシーに拒否');
     
     onConsent(false);
   };

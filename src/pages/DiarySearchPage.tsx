@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, Filter, X, Eye, Edit3, Trash2, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getCurrentUser } from '../lib/deviceAuth';
 
 interface JournalEntry {
   id: string;
@@ -12,6 +13,7 @@ interface JournalEntry {
 }
 
 const DiarySearchPage: React.FC = () => {
+  const currentUser = getCurrentUser();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [searchType, setSearchType] = useState<'date' | 'keyword' | 'emotion'>('keyword');
   const [searchValue, setSearchValue] = useState('');
@@ -825,7 +827,9 @@ const DiarySearchPage: React.FC = () => {
       <div className="fixed bottom-4 right-4 bg-green-100 border border-green-200 rounded-lg p-3 shadow-lg">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-green-800 font-jp-medium text-sm">ローカル保存モード</span>
+          <span className="text-green-800 font-jp-medium text-sm">
+            {currentUser?.lineUsername || 'ゲスト'}のデータ
+          </span>
         </div>
       </div>
     </div>

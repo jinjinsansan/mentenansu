@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase, userService, diaryService, syncService } from '../lib/supabase';
 
 export const useSupabase = () => {
+  // 必要なインポートを追加
+  const { getAuthSession, logSecurityEvent } = require('../lib/deviceAuth');
+  
   const [isConnected, setIsConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -32,9 +35,9 @@ export const useSupabase = () => {
         setIsConnected(true);
         
         // 既存ユーザーの確認
-        const lineUsername = localStorage.getItem('line-username');
-        if (lineUsername) {
-          await initializeUser(lineUsername);
+        const session = getAuthSession();
+        if (session) {
+          await initializeUser(session.lineUsername);
         }
       }
     } catch (error) {
@@ -52,11 +55,19 @@ export const useSupabase = () => {
       // 既存ユーザーを検索
       let user = await userService.getUserByUsername(lineUsername);
       
+      // セキュリティイベントをログ
+      if (user) {
+        logSecurityEvent('supabase_user_found', lineUsername, 'Supabaseユーザーが見つかりました');
+      } else {
+        logSecurityEvent('supabase_user_not_found', lineUsername, 'Supabaseユーザーが見つかりません');
+      }
+      
       if (!user) {
         // 新規ユーザー作成
         user = await userService.createUser(lineUsername);
         
         if (user) {
+          logSecurityEvent('supabase_user_created', lineUsername, 'Supabaseユーザーを作成しました');
           // ローカルデータを移行
           await syncService.migrateLocalData(user.id);
         }

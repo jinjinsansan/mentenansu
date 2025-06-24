@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSupabase } from './useSupabase';
 import { userService, syncService, consentService } from '../lib/supabase';
+import { getAuthSession, logSecurityEvent } from '../lib/deviceAuth';
 
 interface AutoSyncStatus {
   isAutoSyncEnabled: boolean;
@@ -38,15 +39,15 @@ export const useAutoSync = () => {
 
   // 接続状態が変わった時の自動処理
   useEffect(() => {
-    if (isConnected && !hasInitializedRef.current) {
+    const session = getAuthSession();
+    if (isConnected && !hasInitializedRef.current && session) {
       hasInitializedRef.current = true;
-      handleAutoInitialization();
+      handleAutoInitialization(session.lineUsername);
     }
-  }, [isConnected]);
+  }, [isConnected, getAuthSession]);
 
   // 自動初期化処理
-  const handleAutoInitialization = async () => {
-    const lineUsername = localStorage.getItem('line-username');
+  const handleAutoInitialization = async (lineUsername: string) => {
     if (!lineUsername || !isConnected) return;
 
     setStatus(prev => ({ ...prev, syncInProgress: true, syncError: null }));
@@ -59,6 +60,7 @@ export const useAutoSync = () => {
         if (import.meta.env.DEV) {
           console.log('ユーザーが存在しないため、自動作成します');
         }
+        logSecurityEvent('auto_sync_create_user', lineUsername, 'ユーザーが存在しないため、自動作成します');
         user = await userService.createUser(lineUsername);
         
         if (user) {
@@ -74,7 +76,6 @@ export const useAutoSync = () => {
       if (status.isAutoSyncEnabled && user) {
         await performAutoSync(user.id);
       }
-
     } catch (error) {
       console.error('自動初期化エラー:', error);
       setStatus(prev => ({ 
@@ -122,6 +123,7 @@ export const useAutoSync = () => {
       if (syncPerformed) {
         const now = new Date().toISOString();
         localStorage.setItem('last_sync_time', now);
+        logSecurityEvent('auto_sync_completed', userId, '自動同期が完了しました');
         setStatus(prev => ({ ...prev, lastSyncTime: now }));
       }
 
@@ -137,6 +139,7 @@ export const useAutoSync = () => {
   // 自動同期の有効/無効切り替え
   const toggleAutoSync = (enabled: boolean) => {
     localStorage.setItem('auto_sync_enabled', enabled.toString());
+    logSecurityEvent('auto_sync_toggled', 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
     setStatus(prev => ({ ...prev, isAutoSyncEnabled: enabled }));
     
     if (enabled && isConnected && currentUser) {
@@ -155,6 +158,7 @@ export const useAutoSync = () => {
     
     try {
       await performAutoSync(currentUser.id);
+      logSecurityEvent('manual_sync_triggered', currentUser.id, '手動同期が実行されました');
     } finally {
       setStatus(prev => ({ ...prev, syncInProgress: false }));
     }
