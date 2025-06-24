@@ -3,6 +3,7 @@ import { Shield, Users, Database, CheckCircle, AlertTriangle } from 'lucide-reac
 import HybridAuthFlow from '../components/HybridAuthFlow';
 import { hybridAuth, type UserProfile } from '../lib/hybridAuth';
 import HybridAuthSettings from '../components/HybridAuthSettings';
+import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 
 const HybridAuthPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -10,6 +11,7 @@ const HybridAuthPage: React.FC = () => {
   const [showAuthFlow, setShowAuthFlow] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const { isMaintenanceMode, config: maintenanceConfig } = useMaintenanceStatus();
 
   useEffect(() => {
     checkAuthStatus();
@@ -73,6 +75,18 @@ const HybridAuthPage: React.FC = () => {
     });
   };
 
+  // メンテナンスモード中は認証を表示しない
+  if (isMaintenanceMode && maintenanceConfig) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-jp-normal">メンテナンス中のため認証システムは一時的に無効化されています...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -86,9 +100,9 @@ const HybridAuthPage: React.FC = () => {
 
   if (showAuthFlow) {
     return (
-      <HybridAuthFlow 
+      <HybridAuthFlow
         onAuthSuccess={handleAuthSuccess}
-        onAuthSkip={import.meta.env.DEV ? handleAuthSkip : undefined}
+        onAuthSkip={import.meta.env.PROD ? undefined : handleAuthSkip}
       />
     );
   }
@@ -245,7 +259,7 @@ const HybridAuthPage: React.FC = () => {
         </div>
 
         {/* 開発者情報（開発環境のみ） */}
-        {import.meta.env.DEV && (
+        {!import.meta.env.PROD && (
           <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-6 mt-6">
             <h2 className="text-lg font-jp-bold text-yellow-900 mb-4">開発者情報</h2>
             <pre className="text-xs text-yellow-800 font-mono bg-yellow-100 p-3 rounded overflow-auto">

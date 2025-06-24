@@ -550,7 +550,7 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
         {currentStep === 'recovery' && renderRecoveryStep()}
 
         {/* スキップオプション（開発環境のみ） */}
-        {import.meta.env.DEV && onAuthSkip && (
+        {!import.meta.env.PROD && onAuthSkip && (
           <div className="mt-6 pt-6 border-t border-gray-200 text-center">
             <button
               onClick={onAuthSkip}

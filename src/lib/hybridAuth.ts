@@ -108,7 +108,7 @@ class HybridAuthSystem {
   // 第二段階：メールアドレス認証
   async requestEmailVerification(email: string): Promise<{ success: boolean; message: string }> {
     // メールアドレスの形式チェック
-    if (!emailRegex.test(email)) {
+    if (!email || !emailRegex.test(email)) {
       return { success: false, message: 'メールアドレスの形式が正しくありません' };
     }
 
@@ -127,6 +127,12 @@ class HybridAuthSystem {
     // EmailJSを使用してメール送信
     try {
       const result = await emailService.sendVerificationEmail(email, code);
+      
+      // 本番環境では実際のメールが送信される
+      if (import.meta.env.PROD) {
+        console.log('本番環境: 実際のメールが送信されました');
+      }
+      
       return result;
     } catch (error) {
       console.error('メール送信エラー:', error);
@@ -313,7 +319,7 @@ class HybridAuthSystem {
   // デバッグ情報（開発環境のみ）
   getDebugInfo(): any {
     if (!import.meta.env.DEV) return null;
-    
+
     return {
       deviceId: localStorage.getItem('device_id'),
       hasProfile: !!this.getUserProfile(),

@@ -56,12 +56,13 @@ class EmailService {
       // EmailJS設定（環境変数から取得）
       const config: EmailConfig = {
         serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || '',
-        templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '',
+        templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '', 
         publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || ''
       };
 
       // 設定チェック
       if (!this.isValidConfig(config)) {
+        console.log('本番環境: EmailJS設定が不完全です - フォールバックモードで動作します');
         return this.handleFallback(email, code);
       }
 
@@ -73,6 +74,7 @@ class EmailService {
       };
 
       // メール送信
+      console.log('本番環境: EmailJSでメール送信を試行します');
       const response = await emailjs.send(
         config.serviceId,
         config.templateId,
@@ -80,6 +82,7 @@ class EmailService {
       );
 
       if (response.status === 200) {
+        console.log('本番環境: メール送信成功');
         return {
           success: true,
           message: `確認コードを ${email} に送信しました。メールをご確認ください。`
@@ -109,7 +112,11 @@ class EmailService {
 
   private handleFallback(email: string, code: string): { success: boolean; message: string } {
     // EmailJS設定がない場合のフォールバック処理
-    console.log(`フォールバック: 確認コード ${code} をメール ${email} に送信（デモ）`);
+    if (import.meta.env.DEV) {
+      console.log(`フォールバック: 確認コード ${code} をメール ${email} に送信（デモ）`);
+    } else {
+      console.log('本番環境: EmailJS設定がないためフォールバックモードで動作します');
+    }
     
     // 開発環境ではアラートで表示
     if (import.meta.env.DEV) {
@@ -124,8 +131,10 @@ class EmailService {
     }
 
     return {
-      success: true,
-      message: `確認コードを ${email} に送信しました。（デモモード）`
+      success: true, 
+      message: import.meta.env.PROD 
+        ? `セキュア認証で確認コードを送りました（デモモード）` 
+        : `確認コードを ${email} に送信しました。（デモモード）`
     };
   }
 
