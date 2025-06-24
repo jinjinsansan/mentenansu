@@ -342,11 +342,20 @@ const App: React.FC = () => {
   };
 
   const handleDeviceAuthSuccess = (lineUsername: string) => {
-    const user = getCurrentUser();
     if (user) {
-      setCurrentUser(user);
-      setAuthState('authenticated');
-      setCurrentPage('how-to');
+    if (consentGiven === 'true') {
+      // プライバシー同意済みの場合、認証状態をチェック
+      if (isAuthenticated()) {
+        // 認証済みの場合は使い方ページへ
+        const user = getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
+          setCurrentPage('how-to');
+        }
+      } else {
+        // 未認証の場合はログイン画面へ
+        setAuthState('login');
+      }
       
       // Supabaseユーザーを初期化
       if (isConnected) {
@@ -805,20 +814,7 @@ const App: React.FC = () => {
 
             {/* はじめるボタン */}
             <button
-              onClick={() => {
-                const consentGiven = localStorage.getItem('privacyConsentGiven');
-                
-                // 常にプライバシー同意から始める
-                if (!consentGiven) {
-                  setShowPrivacyConsent(true);
-                } else if (isAuthenticated()) {
-                  // 認証済みの場合
-                  setCurrentPage('how-to');
-                } else {
-                  // 未認証の場合
-                  setAuthState('login');
-                }
-              }}
+              onClick={handleStartApp}
               className="bg-orange-400 hover:bg-orange-500 text-white px-8 py-4 rounded-full font-jp-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl mb-8 relative z-10"
             >
               はじめる

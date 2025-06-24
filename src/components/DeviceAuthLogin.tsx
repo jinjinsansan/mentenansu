@@ -101,7 +101,7 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
   const handlePinLogin = async () => {
     if (!formData.pinCode || formData.pinCode.length !== 6) {
       setErrors({ pin: 'PIN番号を正しく入力してください' });
-      logSecurityEvent('login_validation_failed', formData.lineUsername || 'unknown', 'PIN番号の形式が不正');
+      logSecurityEvent('login_validation_failed', formData.lineUsername || 'unknown', 'PIN番号の形式が不正です');
       return;
     }
 
@@ -124,10 +124,17 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
       // PIN番号をハッシュ化して比較
       const hashedPin = await hashPinCode(formData.pinCode, credentials.salt);
       
+      // ロック状態を再確認
+      if (isAccountLocked(credentials.lineUsername)) {
+        logSecurityEvent('login_attempt_locked', credentials.lineUsername, 'ロック中のアカウントへのログイン試行');
+        setStep('locked');
+        return;
+      }
+      
       if (hashedPin === credentials.pinCodeHash) {
         // ログイン成功
         resetLoginAttempts(credentials.lineUsername);
-        logSecurityEvent('login_success', credentials.lineUsername, 'PIN認証によるログイン成功');
+        logSecurityEvent('login_success', credentials.lineUsername, 'デバイス認証によるログイン成功');
         createAuthSession({
           lineUsername: credentials.lineUsername,
           pinCode: formData.pinCode,
@@ -138,7 +145,7 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
       } else {
         // ログイン失敗
         const attempts = incrementLoginAttempts(credentials.lineUsername);
-        logSecurityEvent('login_failed', credentials.lineUsername, `PIN認証失敗 (試行回数: ${attempts})`);
+        logSecurityEvent('login_failed', credentials.lineUsername, `PIN認証に失敗しました (試行回数: ${attempts})`);
         setLoginAttempts(attempts);
         
         if (attempts >= maxAttempts) {
@@ -213,9 +220,9 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
       if (correctAnswers === questions.length) {
         // 秘密の質問に正解した場合、ログイン試行回数をリセット
         const credentials = getUserCredentials();
-        if (credentials) {
+        if (credentials) { 
           resetLoginAttempts(credentials.lineUsername);
-          logSecurityEvent('security_question_used', credentials.lineUsername, '秘密の質問による復旧成功');
+          logSecurityEvent('security_question_success', credentials.lineUsername, '秘密の質問による復旧に成功しました');
           setLoginAttempts(0);
           setStep('pin');
           setErrors({});
