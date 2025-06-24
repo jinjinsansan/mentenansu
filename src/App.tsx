@@ -1078,9 +1078,9 @@ const App: React.FC = () => {
                         onClick={handleCounselorLogout}
                         className="text-sm text-gray-500 hover:text-gray-700 font-jp-normal"
                       >
-                        </div> 
-                      </div> 
-                    </div> 
+                        ログアウト
+                      </button>
+                    </div>
                   )}
                   {currentUser && !isAdmin && (
                     <button
@@ -1204,7 +1204,6 @@ const App: React.FC = () => {
                           ログアウト
                         </button>
                       </div>
-                    </div>
                     </div>
                   )}
                 </div>
