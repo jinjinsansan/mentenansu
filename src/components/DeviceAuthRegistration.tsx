@@ -6,6 +6,7 @@ import {
   saveUserCredentials, 
   saveSecurityQuestions,
   logSecurityEvent,
+  logSecurityEvent,
   SECURITY_QUESTIONS,
   type SecurityQuestion 
 } from '../lib/deviceAuth';
@@ -115,6 +116,9 @@ const DeviceAuthRegistration: React.FC<DeviceAuthRegistrationProps> = ({
   const handleRegistration = async () => {
     try {
       // 1. デバイス情報を保存
+      if (!deviceInfo) {
+        throw new Error('デバイス情報が生成されていません');
+      }
       saveDeviceFingerprint(deviceInfo);
 
       // 2. ユーザー認証情報を保存
@@ -130,12 +134,14 @@ const DeviceAuthRegistration: React.FC<DeviceAuthRegistrationProps> = ({
       // セキュリティイベントをログ
       logSecurityEvent('device_registered', formData.lineUsername, 'デバイス認証システムに新規登録');
 
-      setStep('complete');
+      // 4. セキュリティイベントをログ
 
       // 2秒後に登録完了を通知
       setTimeout(() => {
         onRegistrationComplete(formData.lineUsername);
       }, 2000);
+
+      setStep('complete');
 
     } catch (error) {
       throw new Error('登録処理に失敗しました');
