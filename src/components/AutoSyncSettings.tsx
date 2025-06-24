@@ -93,7 +93,7 @@ const AutoSyncSettings: React.FC = () => {
             <input
               type="checkbox"
               checked={isAutoSyncEnabled}
-              onChange={(e) => toggleAutoSync(e.target.checked)}
+              onChange={(e) => toggleAutoSync(e.target.checked)} 
               disabled={syncInProgress}
               className="sr-only peer"
             />
