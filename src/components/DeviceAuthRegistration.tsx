@@ -130,21 +130,22 @@ const DeviceAuthRegistration: React.FC<DeviceAuthRegistrationProps> = ({
       // 3. 秘密の質問を保存
       saveSecurityQuestions(securityQuestions);
 
-      // 同意履歴を更新
-      const consentRecord = {
-        id: Date.now().toString(),
-        line_username: formData.lineUsername,
-        consent_given: true,
-        consent_date: new Date().toISOString(),
-        ip_address: 'unknown', // 実際の実装では取得可能
-        user_agent: navigator.userAgent
-      };
-      
-      // ローカルストレージに保存
+      // 同意履歴を更新（既に同意履歴は記録済みなので、ユーザー名のみ更新）
       const existingHistories = localStorage.getItem('consent_histories');
-      const histories = existingHistories ? JSON.parse(existingHistories) : [];
-      histories.push(consentRecord);
-      localStorage.setItem('consent_histories', JSON.stringify(histories));
+      if (existingHistories) {
+        const histories = JSON.parse(existingHistories);
+        if (histories.length > 0) {
+          // 最新の履歴のユーザー名を更新
+          const latestHistory = histories[histories.length - 1];
+          if (latestHistory.line_username === 'new_user_' + latestHistory.id.split('_')[0]) {
+            latestHistory.line_username = formData.lineUsername;
+            localStorage.setItem('consent_histories', JSON.stringify(histories));
+          }
+        }
+      }
+
+      // デバイス認証を有効化
+      localStorage.setItem('device_auth_enabled', 'true');
 
       // セキュリティイベントをログ
       logSecurityEvent('device_registered', formData.lineUsername, 'デバイス認証システムに新規登録');

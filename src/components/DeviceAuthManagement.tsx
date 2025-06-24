@@ -41,7 +41,7 @@ const DeviceAuthManagement: React.FC = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
-    lockedUsers: 0,
+    lockedUsers: 0, 
     todayLogins: 0,
     failedAttempts: 0
   });
@@ -156,6 +156,17 @@ const DeviceAuthManagement: React.FC = () => {
         window.location.reload(); // 強制ログアウト後にページをリロード
         break;
     }
+    loadData();
+  };
+
+  // デバイス認証の有効/無効を切り替える
+  const toggleDeviceAuth = (enabled: boolean) => {
+    localStorage.setItem('device_auth_enabled', enabled.toString());
+    addSecurityEvent(
+      enabled ? 'device_auth_enabled' : 'device_auth_disabled', 
+      'admin', 
+      `デバイス認証が${enabled ? '有効' : '無効'}になりました`
+    );
     loadData();
   };
 
@@ -352,11 +363,29 @@ const DeviceAuthManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
           <h2 className="text-2xl font-jp-bold text-gray-900">デバイス認証管理</h2>
-          <p className="text-gray-600 font-jp-normal text-sm mt-1">
+          <p className="text-gray-600 font-jp-normal text-sm mt-1 flex items-center">
             デバイス認証システムの監視と管理
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-jp-medium ${
+              localStorage.getItem('device_auth_enabled') === 'true' 
+                ? 'bg-green-100 text-green-800 border border-green-200' 
+                : 'bg-red-100 text-red-800 border border-red-200'
+            }`}>
+              {localStorage.getItem('device_auth_enabled') === 'true' ? '有効' : '無効'}
+            </span>
           </p>
         </div>
         <div className="flex space-x-2">
+          <button
+            onClick={() => toggleDeviceAuth(localStorage.getItem('device_auth_enabled') !== 'true')}
+            className={`flex items-center space-x-2 ${
+              localStorage.getItem('device_auth_enabled') === 'true'
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-green-600 hover:bg-green-700'
+            } text-white px-4 py-2 rounded-lg font-jp-medium transition-colors mr-2`}
+          >
+            <Shield className="w-4 h-4" />
+            <span>{localStorage.getItem('device_auth_enabled') === 'true' ? '無効化' : '有効化'}</span>
+          </button>
           <button
             onClick={loadData}
             disabled={loading}
@@ -446,6 +475,14 @@ const DeviceAuthManagement: React.FC = () => {
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-jp-bold text-gray-900">登録ユーザー</h3>
+          {localStorage.getItem('device_auth_enabled') !== 'true' && (
+            <div className="mt-2 bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+              <div className="flex items-center space-x-2 text-sm text-yellow-800">
+                <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                <span>デバイス認証が無効になっています。有効にするには上部の「有効化」ボタンをクリックしてください。</span>
+              </div>
+            </div>
+          )}
         </div>
         
         {getFilteredUsers().length === 0 ? (

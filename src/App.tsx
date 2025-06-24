@@ -327,8 +327,27 @@ const App: React.FC = () => {
   const handlePrivacyConsent = (accepted: boolean) => {
     if (accepted) {
       localStorage.setItem('privacyConsentGiven', 'true');
-      localStorage.setItem('privacyConsentDate', new Date().toISOString());
+      const consentDate = new Date().toISOString();
+      localStorage.setItem('privacyConsentDate', consentDate);
       setShowPrivacyConsent(false);
+      
+      // 同意履歴を記録
+      const consentRecord = {
+        id: Date.now().toString(),
+        line_username: 'new_user_' + Date.now(), // 仮のユーザー名（後で更新）
+        consent_given: true,
+        consent_date: consentDate,
+        ip_address: 'unknown', // 実際の実装では取得可能
+        user_agent: navigator.userAgent
+      };
+      
+      // ローカルストレージに保存
+      const existingHistories = localStorage.getItem('consent_histories');
+      const histories = existingHistories ? JSON.parse(existingHistories) : [];
+      histories.push(consentRecord);
+      localStorage.setItem('consent_histories', JSON.stringify(histories));
+      
+      // デバイス認証登録画面へ
       setAuthState('register');
     } else {
       alert('プライバシーポリシーに同意いただけない場合、サービスをご利用いただけません。');
@@ -348,24 +367,49 @@ const App: React.FC = () => {
 
   const handleStartApp = () => {
     const consentGiven = localStorage.getItem('privacyConsentGiven');
+    const deviceAuthEnabled = localStorage.getItem('device_auth_enabled') === 'true';
     
     if (consentGiven === 'true') {
       // 既存ユーザーは認証状態をチェック
-      if (isAuthenticated()) {
+      if (deviceAuthEnabled && isAuthenticated()) {
         // 認証済みの場合は使い方ページへ
         const user = getCurrentUser();
         if (user) {
           setLineUsername(user.lineUsername);
           setCurrentPage('how-to');
         }
-      } else {
+      } else if (deviceAuthEnabled) {
         // 未認証の場合はログイン画面へ
         setAuthState('login');
+      } else {
+        // デバイス認証が無効の場合は従来のフロー
+        const savedUsername = localStorage.getItem('line-username');
+        if (savedUsername) {
+          setLineUsername(savedUsername);
+          if (isConnected) {
+            initializeUser(savedUsername);
+          }
+          setCurrentPage('how-to');
+        } else {
+          // ユーザー名入力画面へ
+          setCurrentPage('username-input');
+        }
       }
     } else {
       // 新規ユーザーはプライバシー同意から
       setShowPrivacyConsent(true);
     }
+  };
+
+  // ユーザー名入力処理（従来のフロー用）
+  const handleUsernameSubmit = (username: string) => {
+    localStorage.setItem('line-username', username);
+    setLineUsername(username);
+    // Supabaseユーザーを初期化
+    if (isConnected) {
+      initializeUser(username);
+    }
+    setCurrentPage('how-to');
   };
 
   // ログアウト処理
@@ -742,6 +786,52 @@ const App: React.FC = () => {
       return <PrivacyConsent onConsent={handlePrivacyConsent} />;
     }
 
+    if (currentPage === 'username-input') {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                <Heart className="w-8 h-8 text-blue-600" />
+              </div>
+              <h1 className="text-2xl font-jp-bold text-gray-900 mb-2">
+                ユーザー名を入力
+              </h1>
+              <p className="text-gray-600 font-jp-normal">
+                ユーザー名を入力してください
+              </p>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target as HTMLFormElement);
+              const username = formData.get('username') as string;
+              if (username.trim()) {
+                handleUsernameSubmit(username.trim());
+              }
+            }}>
+              <div className="mb-6">
+                <input
+                  type="text"
+                  name="username"
+                  placeholder="ユーザー名を入力"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-jp-normal"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-jp-medium transition-colors shadow-md hover:shadow-lg"
+              >
+                次へ進む
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
     if (authState === 'login') {
       return <DeviceAuthLogin 
         onLoginSuccess={handleDeviceAuthSuccess}
@@ -1021,7 +1111,7 @@ const App: React.FC = () => {
                     <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-blue-50 rounded-full border border-blue-200">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                       <span className="text-blue-700 font-jp-medium text-sm">
-                        {lineUsername}さん
+                        {lineUsername || 'ゲスト'}さん
                       </span>
                     </div>
                   )}
@@ -1080,7 +1170,7 @@ const App: React.FC = () => {
                     <div className="sm:hidden flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-full border border-blue-200">
                       <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                       <span className="text-blue-700 font-jp-medium text-xs">
-                        {lineUsername}さん
+                        {lineUsername || 'ゲスト'}さん
                       </span>
                     </div>
                   )}

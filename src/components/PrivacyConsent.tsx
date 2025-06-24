@@ -13,6 +13,25 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isChecked) {
+      // 同意履歴を記録
+      const consentRecord = {
+        id: Date.now().toString(),
+        line_username: 'new_user_' + Date.now(), // 仮のユーザー名（後で更新）
+        consent_given: true,
+        consent_date: new Date().toISOString(),
+        ip_address: 'unknown', // 実際の実装では取得可能
+        user_agent: navigator.userAgent
+      };
+      
+      // ローカルストレージに保存
+      const existingHistories = localStorage.getItem('consent_histories');
+      const histories = existingHistories ? JSON.parse(existingHistories) : [];
+      histories.push(consentRecord);
+      localStorage.setItem('consent_histories', JSON.stringify(histories));
+      
+      // セキュリティイベントをログ
+      logSecurityEvent('privacy_consent_accepted', consentRecord.line_username, 'プライバシーポリシーに同意');
+      
       onConsent(true);
     }
   };
