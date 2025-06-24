@@ -270,3 +270,6 @@ const HybridAuthPage: React.FC = () => {
       </div>
     </div>
   );
+};
+
+export default HybridAuthPage;
