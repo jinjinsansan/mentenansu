@@ -127,7 +127,6 @@ const HybridAuthPage: React.FC = () => {
         </div>
       </div>
     );
-    );
   }
 
   if (showSettings) {
