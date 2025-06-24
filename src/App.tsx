@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, BookOpen, Search, User, Info, Heart, List, Settings, LogIn } from 'lucide-react';
+import { MessageCircle, BookOpen, Search, User, Info, Heart, List, Settings, LogIn, Menu } from 'lucide-react';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
 import { useAutoSync } from './hooks/useAutoSync';
 import { useSupabase } from './hooks/useSupabase';
@@ -33,6 +33,7 @@ const App: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showDeviceAuth, setShowDeviceAuth] = useState(false);
   const [showDeviceRegistration, setShowDeviceRegistration] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   
   const { isMaintenanceMode, config, refreshStatus } = useMaintenanceStatus();
   const { isConnected } = useSupabase();
@@ -324,13 +325,22 @@ const App: React.FC = () => {
   // メインアプリ
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-jp-bold text-gray-900">かんじょうにっき</h1>
-          <p className="text-sm text-gray-600 font-jp-normal">
-            {lineUsername}さん、こんにちは
-            {isConnected && <span className="text-green-600 ml-2">• Supabase接続中</span>}
-          </p>
+      <header className="bg-white shadow-sm sticky top-0 z-20">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-jp-bold text-gray-900">かんじょうにっき</h1>
+            <p className="text-sm text-gray-600 font-jp-normal">
+              {lineUsername}さん、こんにちは
+              {isConnected && <span className="text-green-600 ml-2">• Supabase接続中</span>}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="メニュー"
+          >
+            <Menu className="w-6 h-6 text-gray-700" />
+          </button>
         </div>
       </header>
 
@@ -402,6 +412,78 @@ const App: React.FC = () => {
           </div>
         </div>
       </nav>
+      
+      {/* ハンバーガーメニュー */}
+      {showMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-end z-50">
+          <div className="bg-white w-64 h-full shadow-xl">
+            <div className="p-4 border-b">
+              <h2 className="font-jp-bold text-gray-900">メニュー</h2>
+            </div>
+            <div className="p-4 space-y-4">
+              <button
+                onClick={() => {
+                  setActiveTab('diary');
+                  setShowMenu(false);
+                }}
+                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                日記を書く
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('search');
+                  setShowMenu(false);
+                }}
+                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                日記を検索
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('chat');
+                  setShowMenu(false);
+                }}
+                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                カウンセラーチャット
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('data');
+                  setShowMenu(false);
+                }}
+                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                データ管理
+              </button>
+              <div className="border-t pt-4">
+                <button
+                  onClick={() => {
+                    setActiveTab('privacy');
+                    setShowMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  プライバシーポリシー
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('ログアウトしますか？')) {
+                      localStorage.removeItem('line-username');
+                      setLineUsername(null);
+                      setShowMenu(false);
+                    }
+                  }}
+                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-red-100 text-red-600 transition-colors"
+                >
+                  ログアウト
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 情報メニュー */}
       {activeTab === 'info' && (
