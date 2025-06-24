@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, Filter, X, Eye, Edit3, Trash2, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getCurrentUser } from '../lib/deviceAuth';
+import { getCurrentUser } from '../lib/deviceAuth';
 
 interface JournalEntry {
   id: string;
@@ -13,8 +14,7 @@ interface JournalEntry {
 }
 
 const DiarySearchPage: React.FC = () => {
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [searchType, setSearchType] = useState<'date' | 'keyword' | 'emotion'>('keyword');
+  const currentUser = getCurrentUser();
   const [searchValue, setSearchValue] = useState('');
   const [selectedEmotion, setSelectedEmotion] = useState('');
   const [dateRange, setDateRange] = useState({
