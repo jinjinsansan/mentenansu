@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users, Info, Settings, BarChart3, TrendingUp } from 'lucide-react';
+import { Database, Upload, Download, RefreshCw, CheckCircle, AlertTriangle, Users, Info, Settings, BarChart3, TrendingUp, Shield } from 'lucide-react';
 import { useSupabase } from '../hooks/useSupabase';
 import { syncService, userService, consentService, diaryService, supabase } from '../lib/supabase';
 import AutoSyncSettings from './AutoSyncSettings';
@@ -289,7 +289,7 @@ const DataMigration: React.FC = () => {
         {activeTab === 'auto' ? (
           <AutoSyncSettings />
         ) : (
-          <div className="space-y-6">
+        <div className="space-y-6">
         {/* 本番環境統計（Supabase接続時のみ表示） */}
         {isConnected && (stats.userStats || stats.diaryStats) && (
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
@@ -585,7 +585,7 @@ const DataMigration: React.FC = () => {
         </div>
       </div>
         )}
-      </div>
+        </div>
     </div>
   );
 };
