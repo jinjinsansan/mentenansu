@@ -221,6 +221,7 @@ class HybridAuthSystem {
 
     localStorage.setItem('user_profile', JSON.stringify(profile));
     localStorage.setItem('line-username', username); // 既存システムとの互換性
+    localStorage.setItem('hybrid_auth_enabled', 'true');
     
     return profile;
   }
@@ -293,11 +294,7 @@ class HybridAuthSystem {
       'user_passphrase',
       'passphrase_set_at',
       'line-username',
-      'journalEntries',
-      'consent_histories',
-      'privacyConsentGiven',
-      'privacyConsentDate',
-      'initialScores'
+      'hybrid_auth_enabled'
     ];
 
     keysToDelete.forEach(key => localStorage.removeItem(key));
@@ -308,8 +305,9 @@ class HybridAuthSystem {
   isAuthenticated(): boolean {
     const profile = this.getUserProfile();
     const deviceId = localStorage.getItem('device_id');
+    const isEnabled = localStorage.getItem('hybrid_auth_enabled') === 'true';
     
-    return !!(profile && deviceId && profile.deviceId === deviceId);
+    return !!(isEnabled && profile && deviceId && profile.deviceId === deviceId);
   }
 
   // デバッグ情報（開発環境のみ）
@@ -321,7 +319,8 @@ class HybridAuthSystem {
       hasProfile: !!this.getUserProfile(),
       hasPassphrase: !!localStorage.getItem('user_passphrase'),
       isAuthenticated: this.isAuthenticated(),
-      verificationCodesCount: this.verificationCodes.size
+      verificationCodesCount: this.verificationCodes.size,
+      isHybridAuthEnabled: localStorage.getItem('hybrid_auth_enabled') === 'true'
     };
   }
 }

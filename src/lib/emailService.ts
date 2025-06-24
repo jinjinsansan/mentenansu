@@ -1,6 +1,8 @@
 // EmailJS統合サービス
 // 無料で月300通まで送信可能
 
+import emailjs from '@emailjs/browser';
+
 interface EmailConfig {
   serviceId: string;
   templateId: string;
@@ -16,7 +18,6 @@ interface EmailParams {
 
 class EmailService {
   private static instance: EmailService;
-  private emailjs: any = null;
   private isInitialized = false;
 
   static getInstance(): EmailService {
@@ -30,13 +31,17 @@ class EmailService {
     if (this.isInitialized) return;
 
     try {
-      // EmailJSを動的にインポート
-      this.emailjs = await import('@emailjs/browser');
-      this.isInitialized = true;
-      console.log('EmailJS初期化完了');
+      // EmailJSを初期化
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
+      if (publicKey && publicKey !== 'your_emailjs_public_key') {
+        emailjs.init(publicKey);
+        this.isInitialized = true;
+        console.log('EmailJS初期化完了');
+      } else {
+        console.log('EmailJS Public Keyが設定されていません - デモモードで動作します');
+      }
     } catch (error) {
       console.error('EmailJS初期化エラー:', error);
-      throw new Error('メール送信サービスの初期化に失敗しました');
     }
   }
 
@@ -50,9 +55,9 @@ class EmailService {
 
       // EmailJS設定（環境変数から取得）
       const config: EmailConfig = {
-        serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_default',
-        templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_default',
-        publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'public_key_default'
+        serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || '',
+        templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '',
+        publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || ''
       };
 
       // 設定チェック
@@ -67,11 +72,8 @@ class EmailService {
         user_name: username || 'ユーザー'
       };
 
-      // EmailJS初期化
-      this.emailjs.init(config.publicKey);
-
       // メール送信
-      const response = await this.emailjs.send(
+      const response = await emailjs.send(
         config.serviceId,
         config.templateId,
         emailParams
@@ -99,9 +101,9 @@ class EmailService {
       config.serviceId && 
       config.templateId && 
       config.publicKey &&
-      config.serviceId !== 'service_default' &&
-      config.templateId !== 'template_default' &&
-      config.publicKey !== 'public_key_default'
+      config.serviceId !== 'your_emailjs_service_id' &&
+      config.templateId !== 'your_emailjs_template_id' &&
+      config.publicKey !== 'your_emailjs_public_key'
     );
   }
 
@@ -138,9 +140,9 @@ class EmailService {
     const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-    const hasServiceId = !!(serviceId && serviceId !== 'service_default');
-    const hasTemplateId = !!(templateId && templateId !== 'template_default');
-    const hasPublicKey = !!(publicKey && publicKey !== 'public_key_default');
+    const hasServiceId = !!(serviceId && serviceId !== 'your_emailjs_service_id');
+    const hasTemplateId = !!(templateId && templateId !== 'your_emailjs_template_id');
+    const hasPublicKey = !!(publicKey && publicKey !== 'your_emailjs_public_key');
 
     return {
       isConfigured: hasServiceId && hasTemplateId && hasPublicKey,
