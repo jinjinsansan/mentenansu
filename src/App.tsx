@@ -39,7 +39,7 @@ const App: React.FC = () => {
   const [showPrivacyConsent, setShowPrivacyConsent] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentUser, setCurrentUser] = useState<{ lineUsername: string; deviceId: string } | null>(null);
-  const [emotionPeriod, setEmotionPeriod] = useState<'all' | 'month' | 'week'>('all');
+  const [emotionPeriod, setEmotionPeriod] = useState<'all' | 'month' | 'week'>('all'); 
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -79,12 +79,14 @@ const App: React.FC = () => {
   const checkAuthStatus = () => {
     const consentGiven = localStorage.getItem('privacyConsentGiven');
     
-    if (consentGiven !== 'true') {
+    // プライバシーポリシーの同意状態をチェック
+    if (consentGiven !== 'true') { 
       setShowPrivacyConsent(true);
       setAuthState('checking');
       return;
     }
     
+    // プライバシー同意済みの場合は非表示
     setShowPrivacyConsent(false);
     
     // デバイス認証状態をチェック
@@ -332,19 +334,8 @@ const App: React.FC = () => {
       localStorage.setItem('privacyConsentDate', new Date().toISOString());
       setShowPrivacyConsent(false);
       
-      // プライバシー同意後、デバイス認証状態をチェック
-      if (isAuthenticated()) {
-        const user = getCurrentUser();
-        if (user) {
-          setCurrentUser(user);
-          setAuthState('authenticated');
-          setCurrentPage('how-to');
-        } else {
-          setAuthState('login');
-        }
-      } else {
-        setAuthState('login');
-      }
+      // プライバシー同意後、必ずデバイス認証登録画面へ
+      setAuthState('register');
     } else {
       alert('プライバシーポリシーに同意いただけない場合、サービスをご利用いただけません。');
     }
@@ -807,14 +798,15 @@ const App: React.FC = () => {
               onClick={() => {
                 const consentGiven = localStorage.getItem('privacyConsentGiven');
                 
-                if (consentGiven === 'true') {
-                  if (isAuthenticated()) {
-                    setCurrentPage('how-to');
-                  } else {
-                    setAuthState('login');
-                  }
-                } else {
+                // 常にプライバシー同意から始める
+                if (!consentGiven) {
                   setShowPrivacyConsent(true);
+                } else if (isAuthenticated()) {
+                  // 認証済みの場合
+                  setCurrentPage('how-to');
+                } else {
+                  // 未認証の場合
+                  setAuthState('login');
                 }
               }}
               className="bg-orange-400 hover:bg-orange-500 text-white px-8 py-4 rounded-full font-jp-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl mb-8 relative z-10"

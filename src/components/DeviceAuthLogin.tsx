@@ -101,6 +101,7 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
   const handlePinLogin = async () => {
     if (!formData.pinCode || formData.pinCode.length !== 6) {
       setErrors({ pin: 'PIN番号を正しく入力してください' });
+      logSecurityEvent('login_validation_failed', formData.lineUsername || 'unknown', 'PIN番号の形式が不正');
       return;
     }
 
@@ -111,6 +112,13 @@ const DeviceAuthLogin: React.FC<DeviceAuthLoginProps> = ({
       const credentials = getUserCredentials();
       if (!credentials) {
         throw new AuthError(AuthErrorType.INVALID_CREDENTIALS, 'ユーザー情報が見つかりません');
+      }
+      
+      // ロック状態を再確認
+      if (isAccountLocked(credentials.lineUsername)) {
+        logSecurityEvent('login_attempt_locked', credentials.lineUsername, 'ロック中のアカウントへのログイン試行');
+        setStep('locked');
+        return;
       }
 
       // PIN番号をハッシュ化して比較

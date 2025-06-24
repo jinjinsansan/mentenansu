@@ -14,9 +14,12 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
     e.preventDefault();
     if (isChecked) {
       // 同意履歴を記録
+      // 一時的なユーザー名を生成（デバイス認証登録時に更新される）
+      const tempUsername = 'temp_user_' + Date.now();
+      
       const consentRecord = {
         id: Date.now().toString(),
-        line_username: 'new_user_' + Date.now(), // 一時的なユーザー名
+        line_username: tempUsername,
         consent_given: true,
         consent_date: new Date().toISOString(),
         ip_address: 'unknown', // 実際の実装では取得可能
@@ -30,7 +33,7 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
       localStorage.setItem('consent_histories', JSON.stringify(histories));
 
       // セキュリティイベントをログ
-      logSecurityEvent('privacy_consent', consentRecord.line_username, 'プライバシーポリシーに同意');
+      logSecurityEvent('privacy_consent', tempUsername, 'プライバシーポリシーに同意');
       
       onConsent(true);
     }
