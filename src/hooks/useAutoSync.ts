@@ -58,6 +58,8 @@ export const useAutoSync = () => {
 
   // 自動初期化処理
   const handleAutoInitialization = async (lineUsername: string) => {
+    try {
+      let user = await userService.getUser(lineUsername);
       
       if (!user) {
         if (import.meta.env.DEV) {
@@ -84,6 +86,7 @@ export const useAutoSync = () => {
           if (initializeUser) {
             await initializeUser(lineUsername);
           }
+          if (initializeUser) {
             await initializeUser(lineUsername);
           }
           if (initializeUser) {
@@ -181,7 +184,6 @@ export const useAutoSync = () => {
       console.error('セキュリティログエラー:', error);
     }
     
-    
     try {
       const user = getCurrentUser();
       logSecurityEvent('auto_sync_toggled', user?.lineUsername || 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
@@ -222,7 +224,6 @@ export const useAutoSync = () => {
         console.error('セキュリティログエラー:', error);
       }
       
-      
       try {
         const user = getCurrentUser();
         logSecurityEvent('manual_sync_triggered', user?.lineUsername || currentUser.id, '手動同期が実行されました');
@@ -244,7 +245,6 @@ export const useAutoSync = () => {
 
   // 定期同期の設定（5分間隔）
   useEffect(() => {    
-    
     if (status.isAutoSyncEnabled && isConnected && currentUser) {
       // 前回のタイマーをクリア
       if (syncTimeoutRef.current) {
