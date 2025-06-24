@@ -3,6 +3,21 @@ import { Calendar, Plus, ChevronLeft, ChevronRight, Share2 } from 'lucide-react'
 import { getCurrentUser } from '../lib/deviceAuth';
 import CounselorComment from '../components/CounselorComment';
 
+// 感情に応じた色を返す関数
+const getEmotionColor = (emotion: string) => {
+  const colorMap: { [key: string]: string } = {
+    '恐怖': 'bg-purple-100 text-purple-800 border-purple-200',
+    '悲しみ': 'bg-blue-100 text-blue-800 border-blue-200',
+    '怒り': 'bg-red-100 text-red-800 border-red-200',
+    '悔しい': 'bg-green-100 text-green-800 border-green-200',
+    '無価値感': 'bg-gray-100 text-gray-800 border-gray-300',
+    '罪悪感': 'bg-orange-100 text-orange-800 border-orange-200',
+    '寂しさ': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    '恥ずかしさ': 'bg-pink-100 text-pink-800 border-pink-200'
+  };
+  return colorMap[emotion] || 'bg-gray-100 text-gray-800 border-gray-200';
+};
+
 const DiaryPage = () => {
   const currentUser = getCurrentUser();
   const [formData, setFormData] = useState({
