@@ -1052,7 +1052,7 @@ const App: React.FC = () => {
                   {!isAdmin && (
                     <button
                       onClick={handleShowCounselorLogin}
-                      className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-jp-medium text-gray-400 hover:text-gray-600 transition-colors"
+                      className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-jp-medium text-gray-600 hover:text-gray-900 transition-colors"
                       title="カウンセラーログイン"
                     >
                       <Settings className="w-4 h-4" />
@@ -1150,7 +1150,7 @@ const App: React.FC = () => {
                         handleShowCounselorLogin();
                         setIsMobileMenuOpen(false);
                       }}
-                      className="flex items-center space-x-3 w-full px-3 py-2 rounded-md text-base font-jp-medium text-gray-400 hover:text-gray-600 transition-colors"
+                      className="flex items-center space-x-3 w-full px-3 py-2 rounded-md text-base font-jp-medium text-gray-600 hover:text-gray-900 transition-colors"
                     >
                       <Settings className="w-5 h-5" />
                       <span>カウンセラーログイン</span>
