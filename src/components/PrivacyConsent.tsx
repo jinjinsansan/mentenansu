@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Eye, Lock, Database, AlertTriangle, Users, Clock, MessageCircle } from 'lucide-react';
+import { logSecurityEvent } from '../lib/deviceAuth';
 import { logSecurityEvent, getCurrentUser } from '../lib/deviceAuth';
 
 interface PrivacyConsentProps {
@@ -16,7 +17,7 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
       // 同意履歴を記録
       const consentRecord = {
         id: Date.now().toString(),
-        line_username: getCurrentUser()?.lineUsername || 'new_user_' + Date.now(), // 現在のユーザー名または仮のユーザー名
+        line_username: 'new_user_' + Date.now(), // 仮のユーザー名（後で更新される）
         consent_given: true,
         consent_date: new Date().toISOString(),
         ip_address: 'unknown', // 実際の実装では取得可能
@@ -28,6 +29,13 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
       const histories = existingHistories ? JSON.parse(existingHistories) : [];
       histories.push(consentRecord);
       localStorage.setItem('consent_histories', JSON.stringify(histories));
+      
+      // セキュリティイベントをログ
+      try {
+        logSecurityEvent('privacy_consent_accepted', consentRecord.line_username, 'プライバシーポリシーに同意');
+      } catch (error) {
+        console.error('セキュリティログ記録エラー:', error);
+      }
       
       // セキュリティイベントをログ
       try {
@@ -64,6 +72,13 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
       console.error('セキュリティログ記録エラー:', error);
     }
     
+    // セキュリティイベントをログ
+    try {
+      logSecurityEvent('privacy_consent_rejected', consentRecord.line_username, 'プライバシーポリシーを拒否');
+    } catch (error) {
+      console.error('セキュリティログ記録エラー:', error);
+    }
+    
     onConsent(false);
   };
 
@@ -91,7 +106,8 @@ const PrivacyConsent: React.FC<PrivacyConsentProps> = ({ onConsent }) => {
                 <div className="space-y-2 text-sm text-gray-700">
                   <p>・LINEユーザー識別子（userId）</p>
                   <p>・あなたが投稿する「感情日記」の本文（精神・心理状態を含む要配慮個人情報）</p>
-                  <p>・投稿日時・端末等の利用メタデータ</p>
+                  <p>・デバイス認証情報（デバイスID、PIN番号のハッシュ値、秘密の質問の回答）</p>
+                  <p>・投稿日時・セキュリティイベント等の利用メタデータ</p>
                 </div>
               </div>
             </div>
