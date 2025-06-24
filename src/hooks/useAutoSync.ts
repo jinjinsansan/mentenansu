@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSupabase } from './useSupabase';
 import { userService, syncService, consentService } from '../lib/supabase';
 import { getCurrentUser, logSecurityEvent } from '../lib/deviceAuth';
+import { getCurrentUser, logSecurityEvent } from '../lib/deviceAuth';
 
 interface AutoSyncStatus {
   isAutoSyncEnabled: boolean;
@@ -45,14 +46,14 @@ export const useAutoSync = () => {
       if (lineUsername) {
         handleAutoInitialization(lineUsername);
       }
+      if (lineUsername) {
+        handleAutoInitialization(lineUsername);
+      }
     }
   }, [isConnected]);
 
   // 自動初期化処理
   const handleAutoInitialization = async (lineUsername: string) => {
-    setStatus(prev => ({ ...prev, syncInProgress: true, syncError: null }));
-    
-    try {
       // 1. ユーザーの存在確認・作成
       let user = await userService.getUserByUsername(lineUsername);
       
@@ -60,6 +61,13 @@ export const useAutoSync = () => {
         if (import.meta.env.DEV) {
           console.log('ユーザーが存在しないため、自動作成します');
         }
+        
+        try {
+          logSecurityEvent('auto_sync_create_user', lineUsername, 'ユーザーが存在しないため、自動作成します');
+        } catch (logError) {
+          console.error('セキュリティログエラー:', logError);
+        }
+        
         
         try {
           logSecurityEvent('auto_sync_create_user', lineUsername, 'ユーザーが存在しないため、自動作成します');
@@ -75,6 +83,8 @@ export const useAutoSync = () => {
           if (initializeUser) {
             await initializeUser(lineUsername);
           }
+            await initializeUser(lineUsername);
+          }
         }
       } else {
         setStatus(prev => ({ ...prev, userCreated: true }));
@@ -83,7 +93,6 @@ export const useAutoSync = () => {
       // 2. 自動同期が有効な場合のみデータ同期
       if (status.isAutoSyncEnabled && user) {
         await performAutoSync(user.id);
-      }
     } catch (error) {
       console.error('自動初期化エラー:', error);
       setStatus(prev => ({ 
@@ -138,6 +147,13 @@ export const useAutoSync = () => {
           console.error('セキュリティログエラー:', error);
         }
         
+        
+        try {
+          logSecurityEvent('auto_sync_completed', userId, '自動同期が完了しました');
+        } catch (error) {
+          console.error('セキュリティログエラー:', error);
+        }
+        
         setStatus(prev => ({ ...prev, lastSyncTime: now }));
       }
 
@@ -153,8 +169,16 @@ export const useAutoSync = () => {
   // 自動同期の有効/無効切り替え
   const toggleAutoSync = (enabled: boolean) => {
     localStorage.setItem('auto_sync_enabled', enabled.toString());
-    setStatus(prev => ({ ...prev, isAutoSyncEnabled: enabled }));
     
+    try {
+      const user = getCurrentUser();
+      logSecurityEvent('auto_sync_toggled', user?.lineUsername || 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
+    } catch (error) {
+      console.error('セキュリティログエラー:', error);
+    }
+    
+    setStatus(prev => ({ ...prev, isAutoSyncEnabled: enabled }));
+
     try {
       const user = getCurrentUser();
       logSecurityEvent('auto_sync_toggled', user?.lineUsername || 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
@@ -186,6 +210,14 @@ export const useAutoSync = () => {
         console.error('セキュリティログエラー:', error);
       }
       
+      
+      try {
+        const user = getCurrentUser();
+        logSecurityEvent('manual_sync_triggered', user?.lineUsername || currentUser.id, '手動同期が実行されました');
+      } catch (error) {
+        console.error('セキュリティログエラー:', error);
+      }
+      
     } finally {
       setStatus(prev => ({ ...prev, syncInProgress: false }));
     }
@@ -193,7 +225,13 @@ export const useAutoSync = () => {
 
   // 定期同期の設定（5分間隔）
   useEffect(() => {    
+    
     if (status.isAutoSyncEnabled && isConnected && currentUser) {
+      // 前回のタイマーをクリア
+      if (syncTimeoutRef.current) {
+        clearInterval(syncTimeoutRef.current);
+      }
+      
       // 前回のタイマーをクリア
       if (syncTimeoutRef.current) {
         clearInterval(syncTimeoutRef.current);
@@ -208,6 +246,8 @@ export const useAutoSync = () => {
           clearInterval(syncTimeoutRef.current);
         }
       };
+    } else if (syncTimeoutRef.current) {
+      clearInterval(syncTimeoutRef.current);
     } else if (syncTimeoutRef.current) {
       clearInterval(syncTimeoutRef.current);
     }
