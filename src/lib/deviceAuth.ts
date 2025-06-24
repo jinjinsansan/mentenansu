@@ -374,26 +374,23 @@ export const getSecurityQuestions = (): SecurityQuestion[] => {
   } catch {
     return [];
   }
-}
-// ログアウト処理
-export const logoutUser = (): void => {
-  const user = getCurrentUser();
+};
+
+// 認証状態の確認
+export const isAuthenticated = (): boolean => {
+  const session = getAuthSession();
+  return session !== null && session.isVerified;
+};
+
+// 現在のユーザー情報取得
+export const getCurrentUser = (): { lineUsername: string; deviceId: string } | null => {
+  const session = getAuthSession();
+  if (!session) return null;
   
-  if (user) {
-    try {
-      logSecurityEvent('logout', user.lineUsername, 'ログアウト処理を実行');
-    } catch (error) {
-      console.error('セキュリティログ記録エラー:', error);
-    }
-  }
-  
-  try {
-    clearAuthSession();
-    // エラーが発生しても確実にセッションをクリア
-    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
-  } catch (error) {
-    console.error('ログアウト処理エラー:', error);
-  }
+  return {
+    lineUsername: session.lineUsername,
+    deviceId: session.deviceId
+  };
 };
 
 // ログアウト処理
@@ -410,6 +407,8 @@ export const logoutUser = (): void => {
   
   try {
     clearAuthSession();
+  } catch (error) {
+    console.error('ログアウト処理エラー:', error);
     // エラーが発生しても確実にセッションをクリア
     localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
   }

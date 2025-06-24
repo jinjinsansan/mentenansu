@@ -126,6 +126,8 @@ const DeviceAuthRegistration: React.FC<DeviceAuthRegistrationProps> = ({
         formData.lineUsername,
         formData.pinCode,
         deviceInfo.id
+      );
+
       // 2秒後に登録完了を通知
       setTimeout(() => {
         onRegistrationComplete(formData.lineUsername);
