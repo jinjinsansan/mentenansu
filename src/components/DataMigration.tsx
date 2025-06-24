@@ -287,11 +287,7 @@ const DataMigration: React.FC = () => {
 
         {/* タブコンテンツ */}
         {activeTab === 'auto' ? (
-          <div className="flex-1">
-            <AutoSyncSettings />
-          </div>
-            <AutoSyncSettings />
-          </div>
+          <div>
             <AutoSyncSettings />
           </div>
         ) : (
