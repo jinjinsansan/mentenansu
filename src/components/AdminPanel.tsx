@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Eye, X, User, Calendar, AlertTriangle, UserCheck, Edit3, Save, MessageSquare, ChevronLeft, ChevronRight, Database, Shield } from 'lucide-react';
+import { Search, Filter, Eye, X, User, Calendar, AlertTriangle, UserCheck, Edit3, Save, MessageSquare, ChevronLeft, ChevronRight, Database, Shield, Trash2 } from 'lucide-react';
 import AdvancedSearchFilter from './AdvancedSearchFilter';
 import CounselorManagement from './CounselorManagement';
 import MaintenanceController from './MaintenanceController';
@@ -42,6 +42,8 @@ const AdminPanel: React.FC = () => {
   const [editingMemo, setEditingMemo] = useState<string | null>(null);
   const [memoText, setMemoText] = useState('');
   const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'maintenance' | 'device-auth' | 'security'>('diary');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
   const currentUser = getCurrentUser();
 
   const emotions = [
@@ -229,6 +231,43 @@ const AdminPanel: React.FC = () => {
   const handleCancelMemo = () => {
     setEditingMemo(null);
     setMemoText('');
+  };
+
+  const handleShowDeleteConfirm = (entryId: string) => {
+    setEntryToDelete(entryId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!entryToDelete) return;
+    
+    try {
+      // ローカルストレージのデータを更新
+      const localEntries = localStorage.getItem('journalEntries');
+      if (localEntries) {
+        const parsedEntries = JSON.parse(localEntries);
+        const updatedEntries = parsedEntries.filter((entry: any) => entry.id !== entryToDelete);
+        localStorage.setItem('journalEntries', JSON.stringify(updatedEntries));
+        
+        // 状態を更新
+        setEntries(prev => prev.filter(entry => entry.id !== entryToDelete));
+        
+        // セキュリティイベントをログ
+        try {
+          if (currentUser) {
+            logSecurityEvent('entry_deleted', currentUser.lineUsername, `日記エントリー(ID: ${entryToDelete})が削除されました`);
+          }
+        } catch (error) {
+          console.error('セキュリティログ記録エラー:', error);
+        }
+        
+        setShowDeleteConfirm(false);
+        setEntryToDelete(null);
+      }
+    } catch (error) {
+      console.error('削除エラー:', error);
+      alert('削除に失敗しました。もう一度お試しください。');
+    }
   };
 
   const generateCalendar = (date: Date) => {
@@ -831,9 +870,16 @@ const AdminPanel: React.FC = () => {
                         <button
                           onClick={() => handleAssignCounselor(entry)}
                           className="text-green-600 hover:text-green-700 p-1"
-                          title="担当者を変更"
+                          title="担当者を割り当て"
                         >
                           <UserCheck className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleShowDeleteConfirm(entry.id)}
+                          className="text-red-600 hover:text-red-700 p-1"
+                          title="削除"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -953,6 +999,50 @@ const AdminPanel: React.FC = () => {
       </div>
       {/* 詳細モーダル */}
       {renderDetailModal()}
+      
+      {/* 削除確認モーダル */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-jp-bold text-gray-900">日記を削除</h2>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="bg-red-50 rounded-lg p-4 border border-red-200 mb-6">
+                <div className="flex items-center space-x-3 mb-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <h3 className="font-jp-bold text-red-900">警告</h3>
+                </div>
+                <p className="text-red-800 font-jp-normal">
+                  この日記エントリーを削除しますか？この操作は取り消せません。
+                </p>
+              </div>
+              
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
+                >
+                  削除する
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-jp-medium transition-colors"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* 担当者選択モーダル */}
       {renderAssignmentModal()}

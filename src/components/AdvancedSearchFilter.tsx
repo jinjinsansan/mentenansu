@@ -72,6 +72,8 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
   const [savedSearches, setSavedSearches] = useState<Array<{id: string, name: string, filters: SearchFilters}>>([]);
   const [searchName, setSearchName] = useState('');
   const [showSaveSearch, setShowSaveSearch] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
   const emotions = [
     '恐怖', '悲しみ', '怒り', '悔しい', '無価値感', '罪悪感', '寂しさ', '恥ずかしさ'
@@ -177,6 +179,46 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
 
     setFilteredEntries(filtered);
     onFilteredResults(filtered);
+  };
+
+  const handleShowDeleteConfirm = (entryId: string) => {
+    setEntryToDelete(entryId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!entryToDelete) return;
+    
+    try {
+      // ローカルストレージのデータを更新
+      const localEntries = localStorage.getItem('journalEntries');
+      if (localEntries) {
+        const parsedEntries = JSON.parse(localEntries);
+        const updatedEntries = parsedEntries.filter((entry: any) => entry.id !== entryToDelete);
+        localStorage.setItem('journalEntries', JSON.stringify(updatedEntries));
+        
+        // 状態を更新
+        const updatedFilteredEntries = filteredEntries.filter(entry => entry.id !== entryToDelete);
+        setFilteredEntries(updatedFilteredEntries);
+        onFilteredResults(updatedFilteredEntries);
+        
+        // セキュリティイベントをログ
+        try {
+          const user = getCurrentUser();
+          if (user) {
+            logSecurityEvent('entry_deleted', user.lineUsername, `検索画面から日記エントリー(ID: ${entryToDelete})が削除されました`);
+          }
+        } catch (error) {
+          console.error('セキュリティログ記録エラー:', error);
+        }
+        
+        setShowDeleteConfirm(false);
+        setEntryToDelete(null);
+      }
+    } catch (error) {
+      console.error('削除エラー:', error);
+      alert('削除に失敗しました。もう一度お試しください。');
+    }
   };
 
   const clearAllFilters = () => {
@@ -666,9 +708,16 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
                     <button
                       onClick={() => onViewEntry(entry)}
                       className="text-blue-600 hover:text-blue-700 p-1"
-                      title="詳細を見る"
+                      title="詳細"
                     >
                       <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleShowDeleteConfirm(entry.id)}
+                      className="text-red-600 hover:text-red-700 p-1"
+                      title="削除"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -718,6 +767,50 @@ const AdvancedSearchFilter: React.FC<AdvancedSearchFilterProps> = ({
           </div>
         )}
       </div>
+      
+      {/* 削除確認モーダル */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-jp-bold text-gray-900">日記を削除</h2>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="bg-red-50 rounded-lg p-4 border border-red-200 mb-6">
+                <div className="flex items-center space-x-3 mb-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <h3 className="font-jp-bold text-red-900">警告</h3>
+                </div>
+                <p className="text-red-800 font-jp-normal">
+                  この日記エントリーを削除しますか？この操作は取り消せません。
+                </p>
+              </div>
+              
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
+                >
+                  削除する
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-jp-medium transition-colors"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
