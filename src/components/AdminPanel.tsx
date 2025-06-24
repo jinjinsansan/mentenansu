@@ -42,14 +42,13 @@ const AdminPanel: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assigningEntry, setAssigningEntry] = useState<JournalEntry | null>(null);
   const [editingMemo, setEditingMemo] = useState<string | null>(null);
-  const [addingComment, setAddingComment] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState('');
   const [memoText, setMemoText] = useState('');
   const [activeTab, setActiveTab] = useState<'diary' | 'search' | 'counselor' | 'maintenance' | 'device-auth' | 'security'>('diary');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
   const currentUser = getCurrentUser();
   const [newComment, setNewComment] = useState('');
+  const [addingComment, setAddingComment] = useState(false);
 
   const emotions = [
     '恐怖', '悲しみ', '怒り', '悔しい', '無価値感', '罪悪感', '寂しさ', '恥ずかしさ'
@@ -95,9 +94,9 @@ const AdminPanel: React.FC = () => {
       const localComments = localStorage.getItem('counselorComments');
       
       if (localEntries) {
-        const parsedEntries = JSON.parse(localEntries);
+        let parsedEntries = JSON.parse(localEntries);
         
-        // カウンセラーコメントを取得
+        // カウンセラーコメントを取得（ローカルストレージから）
         const savedComments = localStorage.getItem('counselorComments');
         let comments = [];
         if (savedComments) {
@@ -110,7 +109,7 @@ const AdminPanel: React.FC = () => {
         }
         
         // 管理画面用にデータを拡張
-        const enhancedEntries = parsedEntries.map((entry: any) => ({
+        let enhancedEntries = parsedEntries.map((entry: any) => ({
           ...entry,
           self_esteem_score: entry.selfEsteemScore || 50,
           worthlessness_score: entry.worthlessnessScore || 50,
@@ -124,7 +123,44 @@ const AdminPanel: React.FC = () => {
           counselorComments: comments.filter((c: any) => c.diary_entry_id === entry.id)
         }));
         
-        setEntries(enhancedEntries);
+        // カウンセラーコメントを取得（ローカルストレージから）
+        const savedComments = localStorage.getItem('counselorComments');
+        if (savedComments) {
+          try {
+            const comments = JSON.parse(savedComments);
+            
+            // 各エントリーにコメントを関連付け
+            enhancedEntries = enhancedEntries.map((entry: JournalEntry) => {
+              const entryComments = comments.filter((c: any) => c.diary_entry_id === entry.id);
+              return {
+                ...entry,
+                counselorComments: entryComments
+              };
+            });
+          } catch (error) {
+            console.error('コメント読み込みエラー:', error);
+          }
+        }
+        
+        // カウンセラーコメントを関連付け
+        if (localComments) {
+          try {
+            const comments = JSON.parse(localComments);
+            const entriesWithComments = enhancedEntries.map((entry: any) => {
+              const entryComments = comments.filter((c: any) => c.diary_entry_id === entry.id);
+              return {
+                ...entry,
+                counselorComments: entryComments
+              };
+            });
+            setEntries(entriesWithComments);
+          } catch (error) {
+            console.error('コメント読み込みエラー:', error);
+            setEntries(enhancedEntries);
+          }
+        } else {
+          setEntries(enhancedEntries);
+        }
       }
     } catch (error) {
       console.error('データ読み込みエラー:', error);
@@ -253,26 +289,22 @@ const AdminPanel: React.FC = () => {
     setMemoText('');
   };
 
-  const handleAddComment = (entryId: string) => {
-    setAddingComment(entryId);
-    setCommentText('');
-  };
-
-  const handleSaveComment = async (entryId: string) => {
-    if (!commentText.trim()) return;
+  const handleAddComment = async () => {
+    if (!selectedEntry || !newComment.trim()) return;
+    
+    setAddingComment(true);
     
     try {
-      // 現在のカウンセラー情報を取得（デモ用）
-      const counselorId = '1'; // 仮のID
-      const counselorName = '仁カウンセラー'; // 仮の名前
-      const counselorEmail = 'jin@namisapo.com'; // 仮のメール
-      
       // 新しいコメントを作成
-      const newComment = {
+      const counselorId = '1'; // 仮のカウンセラーID
+      const counselorName = '仁カウンセラー'; // 仮のカウンセラー名
+      const counselorEmail = 'jin@namisapo.com'; // 仮のカウンセラーメール
+      
+      const newCommentObj = {
         id: `comment_${Date.now()}`,
-        diary_entry_id: entryId,
+        diary_entry_id: selectedEntry.id,
         counselor_id: counselorId,
-        comment: commentText.trim(),
+        comment: newComment.trim(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         counselor: {
@@ -281,120 +313,162 @@ const AdminPanel: React.FC = () => {
         }
       };
       
-      // ローカルストレージからコメントを取得
+      // ローカルストレージに保存
       const savedComments = localStorage.getItem('counselorComments');
       const comments = savedComments ? JSON.parse(savedComments) : [];
-      
-      // 新しいコメントを追加
-      comments.push(newComment);
+      comments.push(newCommentObj);
       localStorage.setItem('counselorComments', JSON.stringify(comments));
       
-      // エントリーを更新
-      setEntries(prev => prev.map(entry => 
-        entry.id === entryId 
-          ? { 
-              ...entry, 
-              counselorComments: [...(entry.counselorComments || []), newComment] 
-            } 
-          : entry
-      ));
+      // 状態を更新
+      setEntries(prev => prev.map(entry => {
+        if (entry.id === selectedEntry.id) {
+          const updatedComments = entry.counselorComments ? [...entry.counselorComments, newCommentObj] : [newCommentObj];
+          return {
+            ...entry,
+            counselorComments: updatedComments
+          };
+        }
+        return entry;
+      }));
+      
+      // 選択中のエントリーも更新
+      setSelectedEntry({
+        ...selectedEntry,
+        counselorComments: selectedEntry.counselorComments ? [...selectedEntry.counselorComments, newCommentObj] : [newCommentObj]
+      });
       
       // セキュリティイベントをログ
       try {
         if (currentUser) {
-          logSecurityEvent('comment_added', currentUser.lineUsername, `日記エントリー(ID: ${entryId})にコメントが追加されました`);
+          logSecurityEvent('counselor_comment_added', currentUser.lineUsername, `日記エントリー(ID: ${selectedEntry.id})にコメントが追加されました`);
         }
       } catch (error) {
         console.error('セキュリティログ記録エラー:', error);
       }
       
-      setAddingComment(null);
-      setCommentText('');
+      setNewComment('');
     } catch (error) {
       console.error('コメント追加エラー:', error);
       alert('コメントの追加に失敗しました。もう一度お試しください。');
+    } finally {
+      setAddingComment(false);
     }
   };
 
-  const handleUpdateComment = async (commentId: string, newText: string) => {
+  const handleUpdateComment = async (commentId: string, updatedText: string) => {
     try {
-      // ローカルストレージからコメントを取得
+      // ローカルストレージから取得
       const savedComments = localStorage.getItem('counselorComments');
       if (!savedComments) return;
       
       const comments = JSON.parse(savedComments);
+      const updatedComments = comments.map((c: any) => {
+        if (c.id === commentId) {
+          return {
+            ...c,
+            comment: updatedText,
+            updated_at: new Date().toISOString()
+          };
+        }
+        return c;
+      });
       
-      // コメントを更新
-      const updatedComments = comments.map((c: any) => 
-        c.id === commentId 
-          ? { ...c, comment: newText, updated_at: new Date().toISOString() } 
-          : c
-      );
-      
-      // ローカルストレージに保存
+      // 保存
       localStorage.setItem('counselorComments', JSON.stringify(updatedComments));
       
-      // エントリーを更新
+      // 状態を更新
       setEntries(prev => prev.map(entry => {
         if (entry.counselorComments) {
-          const updatedEntryComments = entry.counselorComments.map((c: any) => 
-            c.id === commentId 
-              ? { ...c, comment: newText, updated_at: new Date().toISOString() } 
-              : c
-          );
-          return { ...entry, counselorComments: updatedEntryComments };
+          return {
+            ...entry,
+            counselorComments: entry.counselorComments.map((c: any) => {
+              if (c.id === commentId) {
+                return {
+                  ...c,
+                  comment: updatedText,
+                  updated_at: new Date().toISOString()
+                };
+              }
+              return c;
+            })
+          };
         }
         return entry;
       }));
       
+      // 選択中のエントリーも更新
+      if (selectedEntry && selectedEntry.counselorComments) {
+        setSelectedEntry({
+          ...selectedEntry,
+          counselorComments: selectedEntry.counselorComments.map((c: any) => {
+            if (c.id === commentId) {
+              return {
+                ...c,
+                comment: updatedText,
+                updated_at: new Date().toISOString()
+              };
+            }
+            return c;
+          })
+        });
+      }
+      
       // セキュリティイベントをログ
       try {
         if (currentUser) {
-          logSecurityEvent('comment_updated', currentUser.lineUsername, `コメント(ID: ${commentId})が更新されました`);
+          logSecurityEvent('counselor_comment_updated', currentUser.lineUsername, `コメント(ID: ${commentId})が更新されました`);
         }
       } catch (error) {
         console.error('セキュリティログ記録エラー:', error);
       }
     } catch (error) {
       console.error('コメント更新エラー:', error);
-      alert('コメントの更新に失敗しました。もう一度お試しください。');
+      throw error;
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      // ローカルストレージからコメントを取得
+      // ローカルストレージから取得
       const savedComments = localStorage.getItem('counselorComments');
       if (!savedComments) return;
       
       const comments = JSON.parse(savedComments);
+      const filteredComments = comments.filter((c: any) => c.id !== commentId);
       
-      // コメントを削除
-      const updatedComments = comments.filter((c: any) => c.id !== commentId);
+      // 保存
+      localStorage.setItem('counselorComments', JSON.stringify(filteredComments));
       
-      // ローカルストレージに保存
-      localStorage.setItem('counselorComments', JSON.stringify(updatedComments));
-      
-      // エントリーを更新
+      // 状態を更新
       setEntries(prev => prev.map(entry => {
         if (entry.counselorComments) {
-          const updatedEntryComments = entry.counselorComments.filter((c: any) => c.id !== commentId);
-          return { ...entry, counselorComments: updatedEntryComments };
+          return {
+            ...entry,
+            counselorComments: entry.counselorComments.filter((c: any) => c.id !== commentId)
+          };
         }
         return entry;
       }));
       
+      // 選択中のエントリーも更新
+      if (selectedEntry && selectedEntry.counselorComments) {
+        setSelectedEntry({
+          ...selectedEntry,
+          counselorComments: selectedEntry.counselorComments.filter((c: any) => c.id !== commentId)
+        });
+      }
+      
       // セキュリティイベントをログ
       try {
         if (currentUser) {
-          logSecurityEvent('comment_deleted', currentUser.lineUsername, `コメント(ID: ${commentId})が削除されました`);
+          logSecurityEvent('counselor_comment_deleted', currentUser.lineUsername, `コメント(ID: ${commentId})が削除されました`);
         }
       } catch (error) {
         console.error('セキュリティログ記録エラー:', error);
       }
     } catch (error) {
       console.error('コメント削除エラー:', error);
-      alert('コメントの削除に失敗しました。もう一度お試しください。');
+      throw error;
     }
   };
 
@@ -615,26 +689,6 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* カウンセラーコメント */}
-              {selectedEntry.counselorComments && selectedEntry.counselorComments.length > 0 && (
-                <div className="mb-6">
-                  <label className="block text-sm font-jp-medium text-gray-700 mb-2">
-                    カウンセラーコメント
-                  </label>
-                  <div className="space-y-3">
-                    {selectedEntry.counselorComments.map((comment: any) => (
-                      <CounselorComment 
-                        key={comment.id} 
-                        comment={comment}
-                        isEditable={true}
-                        onUpdate={handleUpdateComment}
-                        onDelete={handleDeleteComment}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* カウンセラーメモ（内部用） */}
               <div>
                 <label className="block text-sm font-jp-medium text-gray-700 mb-2">
@@ -647,15 +701,13 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
               
-              {/* カウンセラーコメント（ユーザーに表示される） */}
+              {/* カウンセラーコメント */}
               <div>
                 <label className="block text-sm font-jp-medium text-gray-700 mb-2">
-                  カウンセラーコメント（ユーザーに表示）
+                  カウンセラーコメント
                 </label>
-                
-                {/* 既存のコメント */}
                 {selectedEntry.counselorComments && selectedEntry.counselorComments.length > 0 ? (
-                  <div className="space-y-3 mb-4">
+                  <div className="space-y-3">
                     {selectedEntry.counselorComments.map((comment: any) => (
                       <CounselorComment 
                         key={comment.id} 
@@ -667,30 +719,40 @@ const AdminPanel: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
-                    <p className="text-gray-500 font-jp-normal text-sm">
-                      まだコメントはありません
-                    </p>
+                  <div className="bg-gray-50 rounded-lg p-4 text-center">
+                    <p className="text-gray-500 font-jp-normal text-sm">コメントはありません</p>
                   </div>
                 )}
                 
-                {/* 新規コメント入力 */}
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                {/* 新規コメント追加フォーム */}
+                <div className="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Plus className="w-4 h-4 text-blue-600" />
+                    <h4 className="font-jp-medium text-blue-900 text-sm">新規コメント追加</h4>
+                  </div>
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="新しいコメントを入力..."
+                    placeholder="カウンセラーコメントを入力..."
                     className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-jp-normal text-sm resize-none mb-3"
                     rows={3}
                   />
-                  <button
-                    onClick={() => handleSaveComment(selectedEntry.id)}
-                    disabled={!newComment.trim()}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-jp-medium text-sm transition-colors ml-auto"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>コメント送信</span>
-                  </button>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleAddComment}
+                      disabled={addingComment || !newComment.trim()}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-jp-medium text-sm transition-colors"
+                    >
+                      {addingComment ? (
+                        <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          <span>コメント追加</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1131,6 +1193,21 @@ const AdminPanel: React.FC = () => {
                       </p>
                     </div>
 
+                    {/* カウンセラーコメント */}
+                    {entry.counselorComments && entry.counselorComments.length > 0 && (
+                      <div className="mb-3">
+                        {entry.counselorComments.map((comment: any) => (
+                          <CounselorComment 
+                            key={comment.id} 
+                            comment={comment}
+                            isEditable={true}
+                            onUpdate={handleUpdateComment}
+                            onDelete={handleDeleteComment}
+                          />
+                        ))}
+                      </div>
+                    )}
+
                     {/* カウンセラーメモセクション */}
                     <div className="mb-3 bg-blue-50 rounded-lg p-3 border border-blue-200">
                       <div className="flex items-center justify-between mb-2">
@@ -1179,62 +1256,6 @@ const AdminPanel: React.FC = () => {
                         </p>
                       )}
                     </div>
-
-                    {/* カウンセラーコメント */}
-                    {entry.counselorComments && entry.counselorComments.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        {entry.counselorComments.map((comment: any) => (
-                          <CounselorComment 
-                            key={comment.id} 
-                            comment={comment}
-                            isEditable={true}
-                            onUpdate={handleUpdateComment}
-                            onDelete={handleDeleteComment}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {/* コメント追加フォーム */}
-                    {addingComment === entry.id ? (
-                      <div className="mt-3 bg-blue-50 rounded-lg p-3 border border-blue-200">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <MessageCircle className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-jp-medium text-blue-900">新しいコメント</span>
-                        </div>
-                        <textarea
-                          value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                          placeholder="カウンセラーコメントを入力..."
-                          className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-jp-normal text-sm resize-none"
-                          rows={3}
-                        />
-                        <div className="flex justify-end space-x-2 mt-2">
-                          <button
-                            onClick={() => setAddingComment(null)}
-                            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 font-jp-normal"
-                          >
-                            キャンセル
-                          </button>
-                          <button
-                            onClick={() => handleSaveComment(entry.id)}
-                            disabled={!commentText.trim()}
-                            className="flex items-center space-x-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded text-sm font-jp-medium transition-colors"
-                          >
-                            <Save className="w-3 h-3" />
-                            <span>保存</span>
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleAddComment(entry.id)}
-                        className="mt-3 flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm font-jp-medium"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>コメントを追加</span>
-                      </button>
-                    )}
 
                     <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-2">
