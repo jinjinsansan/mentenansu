@@ -46,6 +46,7 @@ export const useAutoSync = () => {
       hasInitializedRef.current = true;
       handleAutoInitialization(session.lineUsername);
     }
+  }
   }, [isConnected]);
 
   // 自動初期化処理
@@ -77,7 +78,6 @@ export const useAutoSync = () => {
           }
             await initializeUser(lineUsername);
           }
-        }
       } else {
         setStatus(prev => ({ ...prev, userCreated: true }));
       }
