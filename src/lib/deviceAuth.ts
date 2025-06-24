@@ -239,6 +239,11 @@ export const logoutUser = (): void => {
   localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
 };
 
+// 認証セッションをクリア
+export const clearAuthSession = (): void => {
+  localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+};
+
 // セキュリティイベントログ
 export const logSecurityEvent = (type: string, username: string, details: string): void => {
   try {
