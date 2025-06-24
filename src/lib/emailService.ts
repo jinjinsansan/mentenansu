@@ -112,14 +112,14 @@ class EmailService {
 
   private handleFallback(email: string, code: string): { success: boolean; message: string } {
     // EmailJS設定がない場合のフォールバック処理
-    if (!import.meta.env.PROD) {
+    if (import.meta.env.DEV) {
       console.log(`フォールバック: 確認コード ${code} をメール ${email} に送信（デモ）`);
     } else {
       console.log('本番環境: EmailJS設定がないためフォールバックモードで動作します');
     }
     
     // 開発環境ではアラートで表示
-    if (!import.meta.env.PROD) {
+    if (import.meta.env.DEV) {
       setTimeout(() => {
         alert(
           `📧 確認コード: ${code}\n\n` +
@@ -132,7 +132,7 @@ class EmailService {
 
     return {
       success: true, 
-      message: import.meta.env.PROD 
+      message: !import.meta.env.DEV 
         ? `確認コードを送信しました。メールをご確認ください。` 
         : `確認コードを ${email} に送信しました。（デモモード）`
     };

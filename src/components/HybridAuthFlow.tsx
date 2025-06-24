@@ -230,8 +230,8 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
         {/* EmailJS設定状態表示 */}
         <div className={`mt-4 p-3 rounded-lg border ${
           emailConfig.isConfigured 
-            ? 'bg-green-50 border-green-200 hidden' 
-            : 'bg-yellow-50 border-yellow-200 hidden'
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-yellow-50 border-yellow-200'
         }`}>
           <div className="flex items-center space-x-2">
             <Settings className={`w-4 h-4 ${
@@ -281,14 +281,16 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
         </button>
         
         {/* テスト送信ボタン */}
-        <button
-          type="button"
-          onClick={handleTestEmail}
-          disabled={loading || !email.trim()}
-          className="w-full bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg font-jp-medium transition-colors text-sm"
-        >
-          テスト送信
-        </button>
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            onClick={handleTestEmail}
+            disabled={loading || !email.trim()}
+            className="w-full bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg font-jp-medium transition-colors text-sm"
+          >
+            テスト送信
+          </button>
+        )}
       </form>
     </div>
   );
