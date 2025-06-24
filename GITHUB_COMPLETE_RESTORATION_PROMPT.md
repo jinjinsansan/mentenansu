@@ -124,7 +124,16 @@ VITE_LINE_REDIRECT_URI=your_redirect_uri
    - CSV出力機能
    - 管理画面での一覧・検索機能
 
-3. **LINE認証対応**
+3. **デバイス認証システム**
+   - デバイスフィンガープリント生成・照合
+   - PIN番号認証（6桁）
+   - 秘密の質問による復旧機能
+   - アカウントロック機能（5回失敗で24時間ロック）
+   - セキュリティイベントログ
+   - デバイス認証管理画面
+   - セキュリティダッシュボード
+
+4. **LINE認証対応**
    - セキュアなOAuth2.0認証
    - CSRF攻撃対策
    - トークン管理とリフレッシュ
@@ -205,9 +214,14 @@ src/
 │   └── useAutoSync.ts              # 自動同期フック
 ├── components/
 │   ├── AutoSyncSettings.tsx       # 自動同期設定UI
-│   └── ConsentHistoryManagement.tsx # 同意履歴管理UI
+│   ├── ConsentHistoryManagement.tsx # 同意履歴管理UI
+│   ├── DeviceAuthLogin.tsx        # デバイス認証ログイン画面
+│   ├── DeviceAuthRegistration.tsx # デバイス認証登録画面
+│   ├── DeviceAuthManagement.tsx   # デバイス認証管理画面
+│   └── SecurityDashboard.tsx      # セキュリティダッシュボード
 └── lib/
-    └── lineAuth.ts                 # LINE認証ライブラリ
+    ├── lineAuth.ts                 # LINE認証ライブラリ
+    └── deviceAuth.ts               # デバイス認証システム
 ```
 
 ### 主要な変更があったファイル
@@ -219,7 +233,7 @@ src/
 ├── components/
 │   ├── DataMigration.tsx           # 自動同期タブ追加、統計表示
 │   ├── PrivacyConsent.tsx          # 同意履歴記録機能追加
-│   ├── AdminPanel.tsx              # UI改善
+│   ├── AdminPanel.tsx              # デバイス認証・セキュリティタブ追加
 │   └── LineAuthGuard.tsx           # LINE認証ガード
 ├── hooks/useMaintenanceStatus.ts   # パフォーマンス改善
 └── pages/
@@ -239,12 +253,17 @@ src/
 - 管理画面の「カウンセラー」タブから履歴を確認可能
 - CSV出力機能で法的要件に対応
 
-### 3. LINE認証
+### 3. デバイス認証システム
+- 実装済みだが、現在は従来のユーザー名入力方式を使用
+- 管理画面の「デバイス認証」と「セキュリティ」タブで機能確認可能
+- PIN番号認証、秘密の質問、アカウントロック機能を含む
+
+### 4. LINE認証
 - 環境変数が設定されている場合のみ有効
 - 既存のユーザー名システムと併用可能
 - セキュリティ強化のためのオプション機能
 
-### 4. データフロー
+### 5. データフロー
 ```
 アプリ起動 → useAutoSync実行 → Supabase接続確認 → ユーザー存在確認
 → ユーザー未存在の場合は自動作成 → ローカルデータ確認 → 自動同期実行
@@ -291,5 +310,6 @@ netlify.toml:
 3. **自動同期テスト**: 新しいユーザーでアプリを開いて自動同期をテスト
 4. **機能テスト**: 日記作成、検索、管理画面の動作確認
 5. **カウンセラーログイン**: 管理画面へのアクセス確認
+6. **デバイス認証**: 管理画面の「デバイス認証」「セキュリティ」タブの確認
 
 このプロンプトを使用することで、GitHubリポジトリから完全な状態でプロジェクトを復元し、すべての機能が正常に動作する状態にできます。
