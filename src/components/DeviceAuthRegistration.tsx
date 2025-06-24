@@ -5,7 +5,6 @@ import {
   saveDeviceFingerprint, 
   saveUserCredentials, 
   saveSecurityQuestions,
-  logSecurityEvent,
   SECURITY_QUESTIONS,
   type SecurityQuestion 
 } from '../lib/deviceAuth';
