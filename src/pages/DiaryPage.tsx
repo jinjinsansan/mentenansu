@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import { getCurrentUser } from '../lib/deviceAuth';
+
+const DiaryPage = () => {
   const currentUser = getCurrentUser();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -179,7 +181,6 @@ import { getCurrentUser } from '../lib/deviceAuth';
 
   const handleShare = () => {
     const username = currentUser?.lineUsername || 'ユーザー';
-    const shareText = `${username}の今日の感情日記 📝\n\n感情: ${formData.emotion}\n\n#かんじょうにっき #感情日記 #自己肯定感\n\n${window.location.origin}`;
     const shareText = `${username}の今日の感情日記 📝\n\n感情: ${formData.emotion}\n\n#かんじょうにっき #感情日記 #自己肯定感\n\n${window.location.origin}`;
     
     if (navigator.share) {
