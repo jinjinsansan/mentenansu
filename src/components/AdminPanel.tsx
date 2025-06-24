@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Eye, X, User, Calendar, AlertTriangle, UserCheck, Edit3, Save, MessageSquare, ChevronLeft, ChevronRight, Database, Shield, Trash2 } from 'lucide-react';
+import { Search, Filter, Eye, X, User, Calendar, AlertTriangle, UserCheck, Edit3, Save, MessageCircle, ChevronLeft, ChevronRight, Database, Shield, Trash2, Send } from 'lucide-react';
 import CounselorComment from './CounselorComment';
 import AdvancedSearchFilter from './AdvancedSearchFilter';
 import CounselorManagement from './CounselorManagement';
@@ -8,6 +8,7 @@ import DeviceAuthManagement from './DeviceAuthManagement';
 import SecurityDashboard from './SecurityDashboard';
 import { diaryService, counselorCommentService } from '../lib/supabase'; 
 import { getCurrentUser, logSecurityEvent } from '../lib/deviceAuth';
+import CounselorComment from './CounselorComment';
 
 interface JournalEntry {
   id: string;
@@ -24,6 +25,7 @@ interface JournalEntry {
   assigned_counselor?: string;
   urgency_level?: 'high' | 'medium' | 'low';
   counselor_memo?: string;
+  counselorComments?: any[];
   counselorComments?: any[];
 }
 
@@ -47,6 +49,8 @@ const AdminPanel: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
   const currentUser = getCurrentUser();
+  const [newComment, setNewComment] = useState('');
+  const [addingComment, setAddingComment] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
 
@@ -91,6 +95,8 @@ const AdminPanel: React.FC = () => {
     try {
       // ローカルストレージからデータを読み込み（デモ用）
       const localEntries = localStorage.getItem('journalEntries');
+      const localComments = localStorage.getItem('counselorComments');
+      
       if (localEntries) {
         let parsedEntries = JSON.parse(localEntries);
         
@@ -127,7 +133,25 @@ const AdminPanel: React.FC = () => {
           }
         }
         
-        setEntries(enhancedEntries);
+        // カウンセラーコメントを関連付け
+        if (localComments) {
+          try {
+            const comments = JSON.parse(localComments);
+            const entriesWithComments = enhancedEntries.map((entry: any) => {
+              const entryComments = comments.filter((c: any) => c.diary_entry_id === entry.id);
+              return {
+                ...entry,
+                counselorComments: entryComments
+              };
+            });
+            setEntries(entriesWithComments);
+          } catch (error) {
+            console.error('コメント読み込みエラー:', error);
+            setEntries(enhancedEntries);
+          }
+        } else {
+          setEntries(enhancedEntries);
+        }
       }
     } catch (error) {
       console.error('データ読み込みエラー:', error);
@@ -434,6 +458,173 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const handleAddComment = async () => {
+    if (!selectedEntry || !newComment.trim()) return;
+    
+    setAddingComment(true);
+    
+    try {
+      // 現在のカウンセラー情報（デモ用）
+      const counselorId = '1'; // 仮のID
+      const counselorName = 'カウンセラー'; // 仮の名前
+      
+      // 新しいコメントを作成
+      const newCommentObj = {
+        id: `comment_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        diary_entry_id: selectedEntry.id,
+        counselor_id: counselorId,
+        comment: newComment.trim(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        counselor: {
+          name: counselorName,
+          email: 'counselor@example.com'
+        }
+      };
+      
+      // ローカルストレージに保存
+      const savedComments = localStorage.getItem('counselorComments');
+      const comments = savedComments ? JSON.parse(savedComments) : [];
+      comments.push(newCommentObj);
+      localStorage.setItem('counselorComments', JSON.stringify(comments));
+      
+      // 状態を更新
+      setEntries(prev => prev.map(entry => {
+        if (entry.id === selectedEntry.id) {
+          const updatedComments = entry.counselorComments ? [...entry.counselorComments, newCommentObj] : [newCommentObj];
+          return {
+            ...entry,
+            counselorComments: updatedComments
+          };
+        }
+        return entry;
+      }));
+      
+      // 選択中のエントリーも更新
+      setSelectedEntry({
+        ...selectedEntry,
+        counselorComments: selectedEntry.counselorComments ? [...selectedEntry.counselorComments, newCommentObj] : [newCommentObj]
+      });
+      
+      // コメント入力をクリア
+      setNewComment('');
+      
+      // セキュリティイベントをログ
+      try {
+        if (currentUser) {
+          logSecurityEvent('counselor_comment_added', currentUser.lineUsername, `日記エントリー(ID: ${selectedEntry.id})にコメントが追加されました`);
+        }
+      } catch (error) {
+        console.error('セキュリティログ記録エラー:', error);
+      }
+      
+    } catch (error) {
+      console.error('コメント追加エラー:', error);
+      alert('コメントの追加に失敗しました。もう一度お試しください。');
+    } finally {
+      setAddingComment(false);
+    }
+  };
+
+  const handleUpdateComment = async (commentId: string, updatedComment: string) => {
+    try {
+      // ローカルストレージから取得
+      const savedComments = localStorage.getItem('counselorComments');
+      if (!savedComments) return;
+      
+      const comments = JSON.parse(savedComments);
+      const updatedComments = comments.map((c: any) => 
+        c.id === commentId ? { ...c, comment: updatedComment, updated_at: new Date().toISOString() } : c
+      );
+      
+      // 保存
+      localStorage.setItem('counselorComments', JSON.stringify(updatedComments));
+      
+      // 状態を更新
+      setEntries(prev => prev.map(entry => {
+        if (entry.counselorComments) {
+          const updatedEntryComments = entry.counselorComments.map((c: any) => 
+            c.id === commentId ? { ...c, comment: updatedComment, updated_at: new Date().toISOString() } : c
+          );
+          return {
+            ...entry,
+            counselorComments: updatedEntryComments
+          };
+        }
+        return entry;
+      }));
+      
+      // 選択中のエントリーも更新
+      if (selectedEntry && selectedEntry.counselorComments) {
+        setSelectedEntry({
+          ...selectedEntry,
+          counselorComments: selectedEntry.counselorComments.map((c: any) => 
+            c.id === commentId ? { ...c, comment: updatedComment, updated_at: new Date().toISOString() } : c
+          )
+        });
+      }
+      
+      // セキュリティイベントをログ
+      try {
+        if (currentUser) {
+          logSecurityEvent('counselor_comment_updated', currentUser.lineUsername, `コメント(ID: ${commentId})が更新されました`);
+        }
+      } catch (error) {
+        console.error('セキュリティログ記録エラー:', error);
+      }
+      
+    } catch (error) {
+      console.error('コメント更新エラー:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      // ローカルストレージから取得
+      const savedComments = localStorage.getItem('counselorComments');
+      if (!savedComments) return;
+      
+      const comments = JSON.parse(savedComments);
+      const filteredComments = comments.filter((c: any) => c.id !== commentId);
+      
+      // 保存
+      localStorage.setItem('counselorComments', JSON.stringify(filteredComments));
+      
+      // 状態を更新
+      setEntries(prev => prev.map(entry => {
+        if (entry.counselorComments) {
+          return {
+            ...entry,
+            counselorComments: entry.counselorComments.filter((c: any) => c.id !== commentId)
+          };
+        }
+        return entry;
+      }));
+      
+      // 選択中のエントリーも更新
+      if (selectedEntry && selectedEntry.counselorComments) {
+        setSelectedEntry({
+          ...selectedEntry,
+          counselorComments: selectedEntry.counselorComments.filter((c: any) => c.id !== commentId)
+        });
+      }
+      
+      // セキュリティイベントをログ
+      try {
+        if (currentUser) {
+          logSecurityEvent('counselor_comment_deleted', currentUser.lineUsername, `コメント(ID: ${commentId})が削除されました`);
+        }
+      } catch (error) {
+        console.error('セキュリティログ記録エラー:', error);
+      }
+      
+    } catch (error) {
+      console.error('コメント削除エラー:', error);
+      throw error;
+    }
+  };
+
   const generateCalendar = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -593,6 +784,18 @@ const AdminPanel: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                
+                {/* カウンセラーコメント表示 */}
+                {entry.counselorComments && entry.counselorComments.length > 0 && (
+                  <div className="mt-3">
+                    {entry.counselorComments.map((comment: any) => (
+                      <CounselorComment 
+                        key={comment.id} 
+                        comment={comment} 
+                      />
+                    ))}
+                  </div>
+                )}
               )}
 
               <div className="grid grid-cols-2 gap-4">
@@ -614,7 +817,7 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* カウンセラーメモ */}
+              {/* カウンセラーメモ（内部用） */}
               <div>
                 <label className="block text-sm font-jp-medium text-gray-700 mb-2">
                   カウンセラーメモ
@@ -623,6 +826,59 @@ const AdminPanel: React.FC = () => {
                   <p className="text-gray-900 font-jp-normal leading-relaxed">
                     {selectedEntry.counselor_memo || 'メモがありません'}
                   </p>
+                </div>
+              </div>
+              
+              {/* カウンセラーコメント（ユーザーに表示される） */}
+              <div>
+                <label className="block text-sm font-jp-medium text-gray-700 mb-2">
+                  カウンセラーコメント（ユーザーに表示）
+                </label>
+                
+                {/* 既存のコメント */}
+                {selectedEntry.counselorComments && selectedEntry.counselorComments.length > 0 ? (
+                  <div className="space-y-3 mb-4">
+                    {selectedEntry.counselorComments.map((comment: any) => (
+                      <CounselorComment 
+                        key={comment.id} 
+                        comment={comment}
+                        isEditable={true}
+                        onUpdate={handleUpdateComment}
+                        onDelete={handleDeleteComment}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
+                    <p className="text-gray-500 font-jp-normal text-sm">
+                      まだコメントはありません
+                    </p>
+                  </div>
+                )}
+                
+                {/* 新規コメント入力 */}
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="新しいコメントを入力..."
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-jp-normal text-sm resize-none mb-3"
+                    rows={3}
+                  />
+                  <button
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim() || addingComment}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-jp-medium text-sm transition-colors ml-auto"
+                  >
+                    {addingComment ? (
+                      <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>コメント送信</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
