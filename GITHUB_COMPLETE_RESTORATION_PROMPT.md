@@ -61,9 +61,7 @@ VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # LINE認証設定
-VITE_LINE_CHANNEL_ID=your_line_channel_id
-VITE_LINE_CHANNEL_SECRET=your_line_channel_secret
-VITE_LINE_REDIRECT_URI=your_redirect_uri
+# LINE認証は削除済み
 ```
 
 ## 🌟 実装済み機能一覧
@@ -134,10 +132,7 @@ VITE_LINE_REDIRECT_URI=your_redirect_uri
    - セキュリティダッシュボード
 
 4. **LINE認証対応**
-   - セキュアなOAuth2.0認証
-   - CSRF攻撃対策
-   - トークン管理とリフレッシュ
-   - 既存システムとの互換性維持
+   - 削除済み（デバイス認証システムを使用）
 
 ## 🗄️ データベース構成
 
@@ -220,7 +215,6 @@ src/
 │   ├── DeviceAuthManagement.tsx   # デバイス認証管理画面
 │   └── SecurityDashboard.tsx      # セキュリティダッシュボード
 └── lib/
-    ├── lineAuth.ts                 # LINE認証ライブラリ
     └── deviceAuth.ts               # デバイス認証システム
 ```
 
@@ -234,10 +228,7 @@ src/
 │   ├── DataMigration.tsx           # 自動同期タブ追加、統計表示
 │   ├── PrivacyConsent.tsx          # 同意履歴記録機能追加
 │   ├── AdminPanel.tsx              # デバイス認証・セキュリティタブ追加
-│   └── LineAuthGuard.tsx           # LINE認証ガード
 ├── hooks/useMaintenanceStatus.ts   # パフォーマンス改善
-└── pages/
-    └── AuthCallback.tsx            # LINE認証コールバック
 ```
 
 ## 🎯 重要な実装ポイント
@@ -259,9 +250,7 @@ src/
 - PIN番号認証、秘密の質問、アカウントロック機能を含む
 
 ### 4. LINE認証
-- 環境変数が設定されている場合のみ有効
-- 既存のユーザー名システムと併用可能
-- セキュリティ強化のためのオプション機能
+- 削除済み（デバイス認証システムを使用）
 
 ### 5. データフロー
 ```

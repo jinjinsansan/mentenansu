@@ -27,6 +27,7 @@ npm run dev
 - **🆕 自動同期システム**: ローカル↔Supabase自動同期
 - **🆕 同意履歴管理**: プライバシーポリシー同意の完全追跡
 - **🆕 LINE認証対応**: セキュアな認証システム（環境変数で制御）
+- **🆕 デバイス認証システム**: PIN番号認証、秘密の質問、セキュリティダッシュボード
 - **メンテナンスモード**: システム保守時の適切な案内
 - **レスポンシブデザイン**: 全デバイス対応
 
@@ -71,9 +72,7 @@ VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # LINE認証設定（オプション）
-VITE_LINE_CHANNEL_ID=your_line_channel_id
-VITE_LINE_CHANNEL_SECRET=your_line_channel_secret
-VITE_LINE_REDIRECT_URI=your_redirect_uri
+# LINE認証は削除済み
 
 # メンテナンスモード設定（オプション）
 VITE_MAINTENANCE_MODE=false
@@ -102,13 +101,7 @@ VITE_MAINTENANCE_END_TIME=2025-01-22T10:00:00Z
 - **データ**: `consent_histories`テーブルとローカルストレージ
 
 ### LINE認証システム
-- **場所**: `src/lib/lineAuth.ts`
-- **機能**:
-  - セキュアなOAuth2.0認証
-  - CSRF攻撃対策
-  - トークン管理とリフレッシュ
-  - 既存システムとの互換性維持
-- **状態**: 実装済み、環境変数で制御
+- **削除済み**: デバイス認証システムを使用
 
 ## 📁 重要なファイル構成
 
@@ -120,8 +113,6 @@ src/
 ├── components/
 │   ├── AutoSyncSettings.tsx       # 自動同期設定UI
 │   └── ConsentHistoryManagement.tsx # 同意履歴管理UI
-└── lib/
-    └── lineAuth.ts                 # LINE認証ライブラリ
 ```
 
 ### 主要な変更があったファイル
@@ -133,7 +124,8 @@ src/
 ├── components/
 │   ├── DataMigration.tsx           # 自動同期タブ追加
 │   └── PrivacyConsent.tsx          # 同意履歴記録機能追加
-└── hooks/useMaintenanceStatus.ts   # パフォーマンス改善
+├── hooks/useMaintenanceStatus.ts   # パフォーマンス改善
+└── lib/deviceAuth.ts               # デバイス認証システム
 ```
 
 ## 🎯 開発継続時の注意点
@@ -150,9 +142,7 @@ src/
 - CSV出力機能で法的要件に対応
 
 ### 3. LINE認証
-- 環境変数が設定されている場合のみ有効
-- 既存のユーザー名システムと併用可能
-- セキュリティ強化のためのオプション機能
+- 削除済み（デバイス認証システムを使用）
 
 ## 🔄 データフロー
 

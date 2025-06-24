@@ -38,7 +38,7 @@
 ### 🆕 新機能（最新実装）
 - **自動同期システム**: ローカル↔Supabase自動同期
 - **同意履歴管理**: プライバシーポリシー同意の完全追跡
-- **LINE認証対応**: セキュアな認証システム（環境変数で制御）
+- **🆕 デバイス認証システム**: PIN番号認証、秘密の質問、セキュリティダッシュボード
 
 ## 🗄️ データベース構成
 - **users**: ユーザー情報
@@ -65,9 +65,7 @@ VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # LINE認証設定（オプション）
-VITE_LINE_CHANNEL_ID=your_line_channel_id
-VITE_LINE_CHANNEL_SECRET=your_line_channel_secret
-VITE_LINE_REDIRECT_URI=your_redirect_uri
+# LINE認証は削除済み
 
 # メンテナンスモード設定（オプション）
 VITE_MAINTENANCE_MODE=false
@@ -83,8 +81,6 @@ src/
 ├── components/
 │   ├── AutoSyncSettings.tsx       # 自動同期設定UI
 │   └── ConsentHistoryManagement.tsx # 同意履歴管理UI
-└── lib/
-    └── lineAuth.ts                 # LINE認証ライブラリ
 ```
 
 ### 主要な変更があったファイル
@@ -96,7 +92,8 @@ src/
 ├── components/
 │   ├── DataMigration.tsx           # 自動同期タブ追加
 │   └── PrivacyConsent.tsx          # 同意履歴記録機能追加
-└── hooks/useMaintenanceStatus.ts   # パフォーマンス改善
+├── hooks/useMaintenanceStatus.ts   # パフォーマンス改善
+└── lib/deviceAuth.ts               # デバイス認証システム
 ```
 
 ## 🎯 開発時の重要なポイント
@@ -113,9 +110,7 @@ src/
 - 法的要件に対応した完全な追跡システム
 
 ### 3. LINE認証
-- 環境変数が設定されている場合のみ有効
-- 既存のユーザー名システムと併用可能
-- セキュリティ強化のためのオプション機能
+- 削除済み（デバイス認証システムを使用）
 
 ## 🔄 データフロー
 
