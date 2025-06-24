@@ -237,6 +237,7 @@ export const updateSessionActivity = (): void => {
 
 export const clearAuthSession = (): void => {
   localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+  logSecurityEvent('logout', getCurrentUser()?.lineUsername || 'unknown', 'ユーザーがログアウトしました');
 };
 
 // セキュリティイベントログ
@@ -362,4 +363,13 @@ export const getCurrentUser = (): { lineUsername: string; deviceId: string } | n
     lineUsername: session.lineUsername,
     deviceId: session.deviceId
   };
+};
+
+// ログアウト処理
+export const logoutUser = (): void => {
+  const user = getCurrentUser();
+  if (user) {
+    logSecurityEvent('logout', user.lineUsername, 'ユーザーが明示的にログアウトしました');
+  }
+  clearAuthSession();
 };

@@ -153,6 +153,7 @@ const DeviceAuthManagement: React.FC = () => {
       case 'force_logout':
         clearAuthSession();
         addSecurityEvent('force_logout', user.lineUsername, '管理者により強制ログアウトされました');
+        window.location.reload(); // 強制ログアウト後にページをリロード
         break;
     }
     loadData();

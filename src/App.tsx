@@ -5,7 +5,7 @@ import DeviceAuthLogin from './components/DeviceAuthLogin';
 import DeviceAuthRegistration from './components/DeviceAuthRegistration';
 import MaintenanceMode from './components/MaintenanceMode';
 import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
-import { isAuthenticated, getCurrentUser, getAuthSession } from './lib/deviceAuth';
+import { isAuthenticated, getCurrentUser, getAuthSession, logoutUser } from './lib/deviceAuth';
 import AdminPanel from './components/AdminPanel';
 import DataMigration from './components/DataMigration';
 import DiaryPage from './pages/DiaryPage';
@@ -361,6 +361,16 @@ const App: React.FC = () => {
 
   const handleDeviceAuthBack = () => {
     setCurrentPage('how-to');
+  };
+  
+  // ログアウト処理
+  const handleLogout = () => {
+    if (window.confirm('ログアウトしますか？再度ログインが必要になります。')) {
+      logoutUser();
+      setCurrentUser(null);
+      setAuthState('login');
+      setCurrentPage('home');
+    }
   };
 
   // カウンセラーアカウント情報
@@ -1071,6 +1081,25 @@ const App: React.FC = () => {
                         ログアウト
                       </button>
                     </div>
+                  )}
+                  {currentUser && !isAdmin && (
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center space-x-3 w-full px-3 py-2 rounded-md text-base font-jp-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>ログアウト</span>
+                    </button>
+                  )}
+                  {currentUser && !isAdmin && (
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-jp-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>ログアウト</span>
+                    </button>
                   )}
                 </nav>
 

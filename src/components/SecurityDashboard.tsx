@@ -3,6 +3,7 @@ import { Shield, AlertTriangle, Activity, TrendingUp, Users, Lock, Eye, RefreshC
 import { 
   getAuthSession, 
   getUserCredentials, 
+  logoutUser,
   getLoginAttempts, 
   isAccountLocked,
   STORAGE_KEYS
@@ -356,6 +357,22 @@ const SecurityDashboard: React.FC = () => {
       {/* システム情報 */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h3 className="text-lg font-jp-bold text-gray-900 mb-4">システム情報</h3>
+        
+        <div className="mb-6">
+          <button
+            onClick={() => {
+              if (window.confirm('すべてのセッションをログアウトしますか？')) {
+                logoutUser();
+                window.location.reload();
+              }
+            }}
+            className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-jp-medium transition-colors"
+          >
+            <Lock className="w-4 h-4" />
+            <span>緊急ログアウト</span>
+          </button>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
