@@ -41,7 +41,7 @@ const HybridAuthSettings: React.FC = () => {
 
   const handleTestEmail = async () => {
     if (!testEmail.trim()) {
-      setTestResult('送信先メールアドレスを入力してください。');
+      setTestResult('メールアドレスを入力してください。');
       return;
     }
 
@@ -154,7 +154,7 @@ const HybridAuthSettings: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <h3 className="text-lg font-jp-bold text-gray-900 mb-4">EmailJS設定状態</h3>
           
-          <div className={`p-4 rounded-lg border ${import.meta.env.PROD ? 'hidden' : ''} ${
+          <div className={`p-4 rounded-lg border ${
             emailConfig.isConfigured 
               ? 'bg-green-50 border-green-200' 
               : 'bg-yellow-50 border-yellow-200'
@@ -228,7 +228,7 @@ const HybridAuthSettings: React.FC = () => {
           </div>
           
           {/* テスト送信 */}
-          <div className={`mt-4 pt-4 border-t border-gray-200 ${import.meta.env.PROD ? 'hidden' : ''}`}>
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <h4 className="font-jp-bold text-gray-900 mb-3">テスト送信</h4>
             <div className="flex space-x-2">
               <input
