@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import { getCurrentUser } from '../lib/deviceAuth';
+import CounselorComment from '../components/CounselorComment';
 
 const DiaryPage = () => {
   const currentUser = getCurrentUser();
@@ -12,6 +13,8 @@ const DiaryPage = () => {
     worthlessnessScore: 50,
     realization: ''
   });
+  
+  const [recentEntries, setRecentEntries] = useState<any[]>([]);
 
   // 無価値感スコア用の状態
   const [worthlessnessScores, setWorthlessnessScores] = useState({
@@ -24,6 +27,54 @@ const DiaryPage = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [saving, setSaving] = useState(false);
+  
+  // コンポーネントマウント時に最新の日記を取得
+  React.useEffect(() => {
+    loadRecentEntries();
+  }, []);
+  
+  const loadRecentEntries = () => {
+    try {
+      // ローカルストレージから日記データを取得
+      const savedEntries = localStorage.getItem('journalEntries');
+      if (savedEntries) {
+        const entries = JSON.parse(savedEntries);
+        
+        // カウンセラーコメントを取得（ローカルストレージから）
+        const savedComments = localStorage.getItem('counselorComments');
+        if (savedComments) {
+          try {
+            const comments = JSON.parse(savedComments);
+            
+            // 各エントリーにコメントを関連付け
+            const entriesWithComments = entries.map((entry: any) => {
+              const entryComments = comments.filter((c: any) => c.diary_entry_id === entry.id);
+              return {
+                ...entry,
+                counselorComments: entryComments
+              };
+            });
+            
+            // 最新の5件を取得
+            const sortedEntries = [...entriesWithComments].sort((a, b) => 
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+            setRecentEntries(sortedEntries.slice(0, 5));
+          } catch (error) {
+            console.error('コメント読み込みエラー:', error);
+          }
+        } else {
+          // コメントがない場合は日記だけ取得
+          const sortedEntries = [...entries].sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          setRecentEntries(sortedEntries.slice(0, 5));
+        }
+      }
+    } catch (error) {
+      console.error('最近の日記読み込みエラー:', error);
+    }
+  };
 
   const emotions = [
     { 
@@ -152,6 +203,9 @@ const DiaryPage = () => {
       
       entries.unshift(newEntry);
       localStorage.setItem('journalEntries', JSON.stringify(entries));
+      
+      // 最近の日記を更新
+      loadRecentEntries();
       
       alert('日記を保存しました！');
     
@@ -578,6 +632,39 @@ const DiaryPage = () => {
           </div>
         </div>
       </div>
+      
+      {/* 最近のカウンセラーコメント */}
+      {recentEntries.some(entry => entry.counselorComments && entry.counselorComments.length > 0) && (
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-jp-bold text-gray-900 mb-6">最近のカウンセラーコメント</h2>
+          <div className="space-y-4">
+            {recentEntries
+              .filter(entry => entry.counselorComments && entry.counselorComments.length > 0)
+              .slice(0, 3)
+              .map(entry => (
+                <div key={entry.id} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-jp-medium border ${getEmotionColor(entry.emotion)}`}>
+                      {entry.emotion}
+                    </span>
+                    <span className="text-gray-500 text-xs font-jp-normal">
+                      {formatDate(entry.date)}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 text-sm font-jp-normal leading-relaxed mb-3 line-clamp-2">
+                    {entry.event}
+                  </p>
+                  {entry.counselorComments.map((comment: any) => (
+                    <CounselorComment 
+                      key={comment.id} 
+                      comment={comment} 
+                    />
+                  ))}
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* 保存ボタン */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pb-8">

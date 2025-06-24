@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, Filter, X, Eye, Edit3, Trash2, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getCurrentUser } from '../lib/deviceAuth';
+import CounselorComment from '../components/CounselorComment';
 
 interface JournalEntry {
   id: string;
@@ -10,6 +11,7 @@ interface JournalEntry {
   realization: string;
   selfEsteemScore: number;
   worthlessnessScore: number;
+  counselorComments?: any[];
 }
 
 const DiarySearchPage: React.FC = () => {
@@ -55,6 +57,27 @@ const DiarySearchPage: React.FC = () => {
       if (savedEntries) {
         const parsedEntries = JSON.parse(savedEntries);
         setEntries(parsedEntries);
+
+        // カウンセラーコメントを取得（ローカルストレージから）
+        const savedComments = localStorage.getItem('counselorComments');
+        if (savedComments) {
+          try {
+            const comments = JSON.parse(savedComments);
+            
+            // 各エントリーにコメントを関連付け
+            const entriesWithComments = parsedEntries.map((entry: JournalEntry) => {
+              const entryComments = comments.filter((c: any) => c.diary_entry_id === entry.id);
+              return {
+                ...entry,
+                counselorComments: entryComments
+              };
+            });
+            
+            setEntries(entriesWithComments);
+          } catch (error) {
+            console.error('コメント読み込みエラー:', error);
+          }
+        }
         
         // 直近5日分の日記を取得
         const sortedEntries = [...parsedEntries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -357,6 +380,18 @@ const DiarySearchPage: React.FC = () => {
                         閉じる
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* カウンセラーコメント表示 */}
+                {entry.counselorComments && entry.counselorComments.length > 0 && (
+                  <div className="mt-3">
+                    {entry.counselorComments.map((comment: any) => (
+                      <CounselorComment 
+                        key={comment.id} 
+                        comment={comment} 
+                      />
+                    ))}
                   </div>
                 )}
               </div>
@@ -723,6 +758,18 @@ const DiarySearchPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+                  
+                  {/* カウンセラーコメント表示 */}
+                  {entry.counselorComments && entry.counselorComments.length > 0 && (
+                    <div className="mt-3">
+                      {entry.counselorComments.map((comment: any) => (
+                        <CounselorComment 
+                          key={comment.id} 
+                          comment={comment} 
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -810,6 +857,23 @@ const DiarySearchPage: React.FC = () => {
                     <span className="font-jp-semibold text-red-600">
                       {entry.worthlessnessScore}
                     </span>
+                  </div>
+                </div>
+              )}
+
+              {/* カウンセラーコメント表示 */}
+              {editingEntry.counselorComments && editingEntry.counselorComments.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-jp-medium text-gray-700 mb-2">
+                    カウンセラーコメント
+                  </label>
+                  <div className="space-y-3">
+                    {editingEntry.counselorComments.map((comment: any) => (
+                      <CounselorComment 
+                        key={comment.id} 
+                        comment={comment} 
+                      />
+                    ))}
                   </div>
                 </div>
               )}

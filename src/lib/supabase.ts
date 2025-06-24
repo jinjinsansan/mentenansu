@@ -105,52 +105,7 @@ export interface CounselorComment {
   };
 }
 
-export interface CounselorComment {
-  id: string;
-  diary_entry_id: string;
-  counselor_id: string;
-  comment: string;
-  created_at: string;
-  updated_at: string;
-  counselor?: {
-    name: string;
-    email: string;
-  };
-}
-
-export interface CounselorComment {
-  id: string;
-  diary_entry_id: string;
-  counselor_id: string;
-  comment: string;
-  created_at: string;
-  updated_at: string;
-  counselor?: {
-    name: string;
-    email: string;
-  };
-}
-
-export interface CounselorComment {
-  id: string;
-  diary_entry_id: string;
-  counselor_id: string;
-  comment: string;
-  created_at: string;
-  updated_at: string;
-  counselor?: {
-    name: string;
-    email: string;
-  };
-}
-
 // ユーザー管理関数
-        }])
-        .select(`
-          *,
-          counselor:counselors(name, email)
-        `)
-        .single();
 export const userService = {
   async createUser(lineUsername: string): Promise<User | null> {
     if (!supabase) return null;
