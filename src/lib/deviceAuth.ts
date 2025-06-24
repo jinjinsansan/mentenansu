@@ -374,6 +374,7 @@ export const getSecurityQuestions = (): SecurityQuestion[] => {
   } catch {
     return [];
   }
+}
 // ログアウト処理
 export const logoutUser = (): void => {
   const user = getCurrentUser();
