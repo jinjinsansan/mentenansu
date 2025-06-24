@@ -14,7 +14,6 @@ import {
   isAccountLocked,
   lockAccount,
   logSecurityEvent,
-  logSecurityEvent,
   getCurrentUser,
   AuthError,
   AuthErrorType,
