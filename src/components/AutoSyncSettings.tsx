@@ -1,6 +1,6 @@
 import React from 'react';
 import { RefreshCw, CheckCircle, AlertTriangle, Clock, Database, Shield } from 'lucide-react';
-import { useAutoSync } from '../hooks/useAutoSync';
+import { useAutoSync } from '../hooks/useAutoSync'; 
 
 const AutoSyncSettings: React.FC = () => {
   const {
@@ -82,7 +82,7 @@ const AutoSyncSettings: React.FC = () => {
         <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-center space-x-3">
             <Database className="w-5 h-5 text-blue-600" />
-            <div>
+            <div className="flex-1">
               <h3 className="font-jp-semibold text-gray-900">自動データ同期</h3>
               <p className="text-sm text-gray-600 font-jp-normal">
                 ローカルデータを自動的にSupabaseに同期します
@@ -94,10 +94,10 @@ const AutoSyncSettings: React.FC = () => {
               type="checkbox"
               checked={isAutoSyncEnabled}
               onChange={(e) => toggleAutoSync(e.target.checked)}
-              disabled={!isConnected || !userCreated}
+              disabled={!isConnected}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed cursor-pointer"></div>
           </label>
         </div>
 
@@ -107,7 +107,7 @@ const AutoSyncSettings: React.FC = () => {
             <h3 className="font-jp-semibold text-gray-900">同期状態</h3>
             <button
               onClick={handleManualSync}
-              disabled={syncInProgress || !isConnected || !userCreated}
+              disabled={syncInProgress || !isConnected}
               className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-jp-medium text-sm transition-colors"
             >
               {syncInProgress ? (

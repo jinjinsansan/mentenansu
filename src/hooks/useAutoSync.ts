@@ -49,9 +49,9 @@ export const useAutoSync = () => {
   // 自動初期化処理
   const handleAutoInitialization = async (lineUsername: string) => {
     if (!lineUsername || !isConnected) return;
-
+    
     setStatus(prev => ({ ...prev, syncInProgress: true, syncError: null }));
-
+    
     try {
       // 1. ユーザーの存在確認・作成
       let user = await userService.getUserByUsername(lineUsername);
@@ -66,7 +66,9 @@ export const useAutoSync = () => {
         if (user) {
           setStatus(prev => ({ ...prev, userCreated: true }));
           // ユーザー作成後、アプリの状態を更新
-          await initializeUser(lineUsername);
+          if (initializeUser) {
+            await initializeUser(lineUsername);
+          }
         }
       } else {
         setStatus(prev => ({ ...prev, userCreated: true }));
@@ -139,7 +141,11 @@ export const useAutoSync = () => {
   // 自動同期の有効/無効切り替え
   const toggleAutoSync = (enabled: boolean) => {
     localStorage.setItem('auto_sync_enabled', enabled.toString());
-    logSecurityEvent('auto_sync_toggled', 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
+    try {
+      logSecurityEvent('auto_sync_toggled', 'system', `自動同期が${enabled ? '有効' : '無効'}になりました`);
+    } catch (error) {
+      console.error('セキュリティログエラー:', error);
+    }
     setStatus(prev => ({ ...prev, isAutoSyncEnabled: enabled }));
     
     if (enabled && isConnected && currentUser) {
@@ -158,7 +164,11 @@ export const useAutoSync = () => {
     
     try {
       await performAutoSync(currentUser.id);
-      logSecurityEvent('manual_sync_triggered', currentUser.id, '手動同期が実行されました');
+      try {
+        logSecurityEvent('manual_sync_triggered', currentUser.id, '手動同期が実行されました');
+      } catch (error) {
+        console.error('セキュリティログエラー:', error);
+      }
     } finally {
       setStatus(prev => ({ ...prev, syncInProgress: false }));
     }
