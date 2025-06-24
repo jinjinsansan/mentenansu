@@ -156,7 +156,7 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
 
   const handleTestEmail = async () => {
     if (!email.trim()) {
-      setError('テスト送信するメールアドレスを入力してください。');
+      setError('メールアドレスを入力してください。');
       return;
     }
 
@@ -167,7 +167,7 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
     try {
       const result = await emailService.testEmail(email);
       if (result.success) {
-        setSuccess('テストメールを送信しました！');
+        setSuccess(result.message);
       } else {
         setError(result.message);
       }
@@ -230,8 +230,8 @@ const HybridAuthFlow: React.FC<HybridAuthFlowProps> = ({ onAuthSuccess, onAuthSk
         {/* EmailJS設定状態表示 */}
         <div className={`mt-4 p-3 rounded-lg border ${
           emailConfig.isConfigured 
-            ? 'bg-green-50 border-green-200' 
-            : 'bg-yellow-50 border-yellow-200'
+            ? 'bg-green-50 border-green-200 hidden' 
+            : 'bg-yellow-50 border-yellow-200 hidden'
         }`}>
           <div className="flex items-center space-x-2">
             <Settings className={`w-4 h-4 ${

@@ -259,7 +259,7 @@ const HybridAuthPage: React.FC = () => {
         </div>
 
         {/* 開発者情報（開発環境のみ） */}
-        {!import.meta.env.PROD && (
+        {false && (
           <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-6 mt-6">
             <h2 className="text-lg font-jp-bold text-yellow-900 mb-4">開発者情報</h2>
             <pre className="text-xs text-yellow-800 font-mono bg-yellow-100 p-3 rounded overflow-auto">
